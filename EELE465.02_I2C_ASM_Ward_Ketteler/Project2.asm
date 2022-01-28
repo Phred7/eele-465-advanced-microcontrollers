@@ -56,21 +56,29 @@ init:
 
 				bic.b	#LOCKLPM5, &PM5CTL0		; disable DIO low-power default
 
-				bis.b	#BIT3, &P3OUT			; set init val to 0
-
 main:
-				xor.b	#BIT2, &P3OUT
-				xor.b	#BIT3, &P3OUT
-				mov.w	global_outer_delay, R4
-				call 	#delay
-				jmp main
+				bis.b	#BIT6, &P6OUT
+				call 	#delay_init
+				call 	#i2c_start
+				bic.b	#BIT6, &P6OUT
+				call 	#delay_init
+				jmp 	main
 
-delay:
-				mov.w	global_inner_delay, R5	; sets inner loop delay
+
+
+delay_init:		mov.w	global_outer_delay, R4
+delay:			mov.w	global_inner_delay, R5	; sets inner loop delay
 dec_inner:		dec		R5						; decrements inner delay reg
 				jnz		dec_inner				; loop if R5 is not 0
 				dec		R4						; decrements outer delay reg
 				jnz		delay					; loop if R4 is not 0
+				ret
+
+i2c_start:
+				bis.b	#BIT0, &P1OUT
+				call 	#delay_init
+				bic.b	#BIT0, &P1OUT
+				call 	#delay_init
 				ret
 
 ;-------------------------------------------------------------------------------
@@ -78,8 +86,7 @@ dec_inner:		dec		R5						; decrements inner delay reg
 ;-------------------------------------------------------------------------------
 
 ; Service TB0
-TimerB0_ISR:
-			xor.b	#BIT6, &P6OUT
+timer_b0_isr:
 			bic.w	#TBIFG, &TB0CTL
 			reti
 ;-------------- END service_TB0 --------------
@@ -91,8 +98,8 @@ TimerB0_ISR:
 						.data
 						.retain
 
-global_outer_delay:		.short	000FFh
-global_inner_delay:		.short  0000Fh
+global_outer_delay:		.short	00BD3h
+global_inner_delay:		.short  00072h
 
 ;-------------------------------------------------------------------------------
 ; Stack Pointer definition
@@ -107,4 +114,4 @@ global_inner_delay:		.short  0000Fh
             .short  RESET
             
             .sect	".int43"				; TB0CCR0
-            .short	TimerB0_ISR
+            .short	timer_b0_isr
