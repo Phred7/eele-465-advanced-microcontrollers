@@ -101,32 +101,44 @@ i2c_start:
 					ret
 
 
+i2c_stop:
+					bis.b	#BIT3, &P3OUT			; SDA high
+					call	#delay
+					bis.b	#BIT2, &P3OUT			; SCL high
+					ret
+
+
 
 i2c_send:
 					call	#i2c_tx_byte
+					call	#i2c_stop
 					ret
 
 
 
 i2c_tx_byte:
-					mov.w	#06h, R7				; loop counter
+					mov.b	#08h, R7				; loop counter (07h sends 7 bits)
 					mov.b	transmit_byte, R8		; i2c addr
-					rlc 	R8
-for:				dec		R7
+					; mov.b	#055h, R8
+					setc	; TODO: if read write bit set/clear C then rotate with carry
+					rlc.b 	R8
+for:				dec.b	R7
+					mov.b	#080h, R9				; bit mask: 1000 0000 0000 0000b = 080000h, 1000 0000 = 080h
 					; send bit
-					and.b	R8, #080h				; bit mask: 1000 0000 0000 0000b = 080000h, 1000 0000 = 080h
+					and.b	R8, R9
 					jz		sda_low					; if z=1 then MSB is 0 and dont set SDA
 					bis.b	#BIT3, &P3OUT			; SDA high
 					jmp		stab_delay				; skip to stability delay
-sda_low:			bis.b	#BIT3, &P3OUT			; SDA low
+sda_low:			bic.b	#BIT3, &P3OUT			; SDA low
 stab_delay:			call	#short_delay			; stability delay
 					bis.b	#BIT2, &P3OUT			; SCL high
 					call 	#delay					; bit delay
 					bic.b	#BIT2, &P3OUT			; SCL low
 					call	#short_delay			; stability delay
 					bic.b	#BIT3, &P3OUT			; SDA low
+					call	#delay
 					; END send bit
-					rra		R8						; rotate i2c addr
+					rla.b	R8						; rotate i2c addr
 for_cmp:			cmp		#00h, R7				; compare R7 to 0
 					jnz		for						; if R7 is not 0 then continue iterating
 					; TODO send r/w
