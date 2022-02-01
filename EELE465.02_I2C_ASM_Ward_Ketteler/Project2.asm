@@ -63,13 +63,12 @@ main:
 					; start condition
 					call 	#i2c_start
 
-					; send
+					; send addr and data
 					mov.b	transmit_byte, R8		; i2c addr	; mov.b	#055h, R8
-					setc	; TODO: if read write bit set/clear C then rotate with carry
+					clrc	; TODO: if read/write bit set/clear C then rotate with carry
 					rlc.b 	R8
 					call	#i2c_send
-					call	#ack
-					call	#i2c_stop
+
 					jmp 	main
 
 
@@ -108,7 +107,7 @@ i2c_stop:
 					bis.b	#BIT2, &P3OUT			; SCL high
 					call	#delay
 					bis.b	#BIT3, &P3OUT			; SDA high
-					call 	#delay
+					call 	#delay					; extra delay to seperate packets
 					call 	#delay
 					call 	#delay
 					call 	#delay
@@ -120,13 +119,25 @@ i2c_stop:
 
 i2c_send:
 					call	#i2c_tx_byte
+
+					; send data (0-9)
+					mov.b 	#00h, R11
+					mov.b	#0Ah, R10				; loop counter (08h sends 8 bits)
+for:				dec.b	R10
+					mov.b	R11, R8
+					call	#i2c_tx_byte
+					add.b	#01h, R11				; add 1 to send data
+					cmp		#00h, R10				; compare R10 to 0
+					jnz		for						; if R10 is not 0 then continue iterating
+
+					call	#i2c_stop				; sends i2c stop condition (same as re-start condition but should only happen after an ACK. If a NACK resend)
 					ret
 
 
 
 i2c_tx_byte:		; R8 stores byte data to transmit
-					mov.b	#08h, R7				; loop counter (07h sends 7 bits)
-for:				dec.b	R7
+					mov.b	#08h, R7				; loop counter (08h sends 8 bits)
+tx_byte_for:		dec.b	R7
 					mov.b	#080h, R9				; bit mask: 1000 0000 0000 0000b = 080000h, 1000 0000 = 080h
 					; send bit
 					and.b	R8, R9
@@ -138,10 +149,10 @@ stab_delay:			call	#clock_pulse
 					bic.b	#BIT3, &P3OUT			; SDA low
 					call	#delay
 					; END send bit
-					rla.b	R8						; rotate i2c addr
-for_cmp:			cmp		#00h, R7				; compare R7 to 0
-					jnz		for						; if R7 is not 0 then continue iterating
-					; TODO send r/w
+					rla.b	R8						; rotate byte to next bit
+tx_byte_for_cmp:	cmp		#00h, R7				; compare R7 to 0
+					jnz		tx_byte_for				; if R7 is not 0 then continue iterating
+					call	#ack					; simulates recieving an ACK
 					ret
 
 
@@ -153,7 +164,7 @@ ack:				; this simulates an ACK
 
 
 
-ack:				; this simulates an NACK
+nack:				; this simulates an NACK
 					bis.b	#BIT3, &P3OUT			; SDA high
 					call	#clock_pulse
 					ret
