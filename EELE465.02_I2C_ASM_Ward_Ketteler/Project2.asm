@@ -56,18 +56,20 @@ init:
 
 					bic.b	#LOCKLPM5, &PM5CTL0		; disable DIO low-power default
 
+					bis.b	#BIT2, &P3OUT			; SCL
+					bis.b	#BIT3, &P3OUT			; SDA
+
 main:
 					; start condition
-					bis.b	#BIT2, &P3OUT			; SCL
-					call 	#delay
 					call 	#i2c_start
-					bic.b	#BIT2, &P3OUT			; SCL
-					call 	#delay
-					; END start condition
 
 					; send
+					mov.b	transmit_byte, R8		; i2c addr	; mov.b	#055h, R8
+					setc	; TODO: if read write bit set/clear C then rotate with carry
+					rlc.b 	R8
 					call	#i2c_send
-					; END send
+					call	#ack
+					call	#i2c_stop
 					jmp 	main
 
 
@@ -94,34 +96,36 @@ dec_inner:			dec		R5						; decrements inner delay reg
 
 i2c_start:
 					; start condition implies that SCL must be high and SDA must change from H->L then SCL->L
-					bis.b	#BIT3, &P3OUT			; SDA
 					call 	#delay
 					bic.b	#BIT3, &P3OUT			; SDA
+					call 	#delay
+					bic.b	#BIT2, &P3OUT			; SCL
 					call 	#delay
 					ret
 
 
 i2c_stop:
-					bis.b	#BIT3, &P3OUT			; SDA high
-					call	#delay
 					bis.b	#BIT2, &P3OUT			; SCL high
+					call	#delay
+					bis.b	#BIT3, &P3OUT			; SDA high
+					call 	#delay
+					call 	#delay
+					call 	#delay
+					call 	#delay
+					call 	#delay
+					call 	#delay
 					ret
 
 
 
 i2c_send:
 					call	#i2c_tx_byte
-					call	#i2c_stop
 					ret
 
 
 
-i2c_tx_byte:
+i2c_tx_byte:		; R8 stores byte data to transmit
 					mov.b	#08h, R7				; loop counter (07h sends 7 bits)
-					mov.b	transmit_byte, R8		; i2c addr
-					; mov.b	#055h, R8
-					setc	; TODO: if read write bit set/clear C then rotate with carry
-					rlc.b 	R8
 for:				dec.b	R7
 					mov.b	#080h, R9				; bit mask: 1000 0000 0000 0000b = 080000h, 1000 0000 = 080h
 					; send bit
@@ -130,11 +134,7 @@ for:				dec.b	R7
 					bis.b	#BIT3, &P3OUT			; SDA high
 					jmp		stab_delay				; skip to stability delay
 sda_low:			bic.b	#BIT3, &P3OUT			; SDA low
-stab_delay:			call	#short_delay			; stability delay
-					bis.b	#BIT2, &P3OUT			; SCL high
-					call 	#delay					; bit delay
-					bic.b	#BIT2, &P3OUT			; SCL low
-					call	#short_delay			; stability delay
+stab_delay:			call	#clock_pulse
 					bic.b	#BIT3, &P3OUT			; SDA low
 					call	#delay
 					; END send bit
@@ -143,6 +143,31 @@ for_cmp:			cmp		#00h, R7				; compare R7 to 0
 					jnz		for						; if R7 is not 0 then continue iterating
 					; TODO send r/w
 					ret
+
+
+
+ack:				; this simulates an ACK
+					bic.b	#BIT3, &P3OUT			; SDA low
+					call	#clock_pulse
+					ret
+
+
+
+ack:				; this simulates an NACK
+					bis.b	#BIT3, &P3OUT			; SDA high
+					call	#clock_pulse
+					ret
+
+
+
+clock_pulse:
+					call	#short_delay			; stability delay
+					bis.b	#BIT2, &P3OUT			; SCL high
+					call 	#delay					; bit delay
+					bic.b	#BIT2, &P3OUT			; SCL low
+					call	#short_delay			; stability delay
+					ret
+
 
 ;-------------------------------------------------------------------------------
 ; Interrupt Service Routines
@@ -161,11 +186,17 @@ timer_b0_isr:
 					.data
 					.retain
 
-global_short_outer_delay:	.short	00BD3h
-global_short_inner_delay:	.short  00072h
+global_short_outer_delay:		.short	00001h
+global_short_inner_delay:		.short  00001h
 
-global_outer_delay:	.short	00BD3h
-global_inner_delay:	.short  00072h
+global_outer_delay:		.short	00005h
+global_inner_delay:		.short  00002h
+
+;global_short_outer_delay:	.short	00BD3h
+;global_short_inner_delay:	.short  00072h
+
+;global_outer_delay:	.short	00BD3h
+;global_inner_delay:	.short  00072h
 
 transmit_byte:		.byte  00068h					; DS3231 Addr: 1101000 = 068h
 

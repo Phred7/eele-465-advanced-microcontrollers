@@ -91,8 +91,11 @@ TimerB0_ISR:
 					.data
 					.retain
 
-global_outer_delay:		.short	00BD3h
-global_inner_delay:		.short  00072h
+;global_outer_delay:		.short	00BD3h
+;global_inner_delay:		.short  00072h
+
+global_outer_delay:		.short	00005h
+global_inner_delay:		.short  00002h
 
 ;-------------------------------------------------------------------------------
 ; Stack Pointer definition
