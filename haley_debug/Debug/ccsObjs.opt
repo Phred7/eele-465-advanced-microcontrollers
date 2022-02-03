@@ -1,0 +1,1 @@
+"./EELE465.01_I2C_Ketteler_Ward_v1.obj" "../lnk_msp430fr2355.cmd" -lfrwp_init.a -llibc.a 
