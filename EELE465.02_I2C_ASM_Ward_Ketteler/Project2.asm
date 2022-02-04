@@ -70,14 +70,14 @@ main:
 					call	#i2c_send
 
 					; send data (0-9)
-					mov.b 	#00h, R11
-					mov.b	#0Ah, R10				; loop counter (08h sends 8 bits)
-for:				dec.b	R10
-					mov.b	R11, R8
-					call	#i2c_send
-					add.b	#01h, R11				; add 1 to send data
-					cmp		#00h, R10				; compare R10 to 0
-					jnz		for						; if R10 is not 0 then continue iterating
+					;mov.b 	#00h, R11
+					;mov.b	#0Ah, R10				; loop counter (08h sends 8 bits)
+;for:				dec.b	R10
+					;mov.b	R11, R8
+					;call	#i2c_send
+					;add.b	#01h, R11				; add 1 to send data
+					;cmp		#00h, R10				; compare R10 to 0
+					;jnz		for						; if R10 is not 0 then continue iterating
 
 					; stop condition
 					call	#i2c_stop				; sends i2c stop condition (same as re-start condition but should only happen after an ACK. If a NACK resend)
@@ -116,6 +116,7 @@ i2c_start:
 					ret
 
 
+
 i2c_stop:
 					bis.b	#BIT2, &P3OUT			; SCL high
 					call	#delay
@@ -132,7 +133,8 @@ i2c_stop:
 
 i2c_send:
 					call	#i2c_tx_byte
-					call	#ack					; simulates recieving an ACK
+					;call	#ack					; simulates recieving an ACK
+					call 	#recieve_ack
 					ret
 
 
@@ -154,6 +156,21 @@ stab_delay:			call	#clock_pulse
 					rla.b	R8						; rotate byte to next bit
 tx_byte_for_cmp:	cmp		#00h, R7				; compare R7 to 0
 					jnz		tx_byte_for				; if R7 is not 0 then continue iterating
+					ret
+
+
+
+recieve_ack:
+					bis.b	#BIT3, &P3OUT			; SDA high
+					bic.b	#BIT3, &P3DIR			; SDA as input
+					call	#short_delay			; stability delay
+					bis.b	#BIT2, &P3OUT			; SCL high
+					; check ack/nack
+					call 	#delay					; bit delay
+					bic.b	#BIT2, &P3OUT			; SCL low
+					call	#short_delay			; stability delay
+					bis.b	#BIT3, &P3DIR			; SDA as output
+					bic.b	#BIT3, &P3OUT			; SDA low
 					ret
 
 
