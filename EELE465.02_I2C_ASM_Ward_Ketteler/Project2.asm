@@ -65,9 +65,11 @@ main:
 
 					; send addr and data
 					mov.b	transmit_byte, R8		; i2c addr	; mov.b	#055h, R8
-					clrc	; TODO: if read/write bit set/clear C then rotate with carry
+					clrc							; TODO: if read/write bit set/clear C then rotate with carry
 					rlc.b 	R8
 					call	#i2c_send
+					tst.b	R12						; tests to see if the MSP recieved a NACK
+					jnz		nak_ed					; if the MSP recieved a NACK
 
 					; send data (0-9)
 					;mov.b 	#00h, R11
@@ -75,6 +77,8 @@ main:
 ;for:				dec.b	R10
 					;mov.b	R11, R8
 					;call	#i2c_send
+					;tst.b	R12						; tests to see if the MSP recieved a NACK
+					;jnz		nak_ed				; if the MSP recieved a NACK
 					;add.b	#01h, R11				; add 1 to send data
 					;cmp		#00h, R10				; compare R10 to 0
 					;jnz		for						; if R10 is not 0 then continue iterating
@@ -83,8 +87,12 @@ main:
 					call	#i2c_stop				; sends i2c stop condition (same as re-start condition but should only happen after an ACK. If a NACK resend)
 
 					jmp 	main
+					nop
 
-
+nak_ed:
+					call	#i2c_stop
+					jmp 	main
+					nop
 
 ;-------------------------------------------------------------------------------
 ; Subroutines
@@ -166,7 +174,12 @@ recieve_ack:
 					call	#short_delay			; stability delay
 					bis.b	#BIT2, &P3OUT			; SCL high
 					; check ack/nack
-					call 	#delay					; bit delay
+					bit.b	#BIT3, &P3IN			; tests the value of P3.3. If z=1 we got a nack, if z=0 we got an ack
+					jz		rec_ack:
+recieved_nack:		mov.b	#01h, R12
+					jmp 	recieved_finally
+recieved_ack:		mov.b	#00h, R12
+recieved_finally:	call 	#delay					; bit delay
 					bic.b	#BIT2, &P3OUT			; SCL low
 					call	#short_delay			; stability delay
 					bis.b	#BIT3, &P3DIR			; SDA as output
