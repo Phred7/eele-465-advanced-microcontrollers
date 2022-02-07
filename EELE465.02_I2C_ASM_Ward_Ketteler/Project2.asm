@@ -1,6 +1,7 @@
 ;-------------------------------------------------------------------------------
 ; MSP430 Assembler Code Template for use with TI Code Composer Studio
-;
+; Walker Ward
+; Project 2: Custom I2C protocol
 ;
 ;-------------------------------------------------------------------------------
             		.cdecls C,LIST,"msp430.h"       ; Include device header file
@@ -22,6 +23,18 @@ StopWDT     		mov.w   #WDTPW|WDTHOLD,&WDTCTL  ; Stop watchdog timer
 
 ;-------------------------------------------------------------------------------
 ; Main loop here
+;	R4 - delay subroutine reserved
+;	R5 - delay subroutine reserved
+;	R6 - delay subroutine reserved
+;	R7 - transmit byte
+;	R8 - transmit byte
+;	R9 - transmit byte
+;	R10
+;	R11
+;	R12 - test what kind of ack was returned by the RTC
+;	R13
+;	R14
+;	R15
 ;-------------------------------------------------------------------------------
 init:
 					bis.b	#BIT6, &P6DIR 			; set green LED2 as out - reps SCL
@@ -175,7 +188,7 @@ recieve_ack:
 					bis.b	#BIT2, &P3OUT			; SCL high
 					; check ack/nack
 					bit.b	#BIT3, &P3IN			; tests the value of P3.3. If z=1 we got a nack, if z=0 we got an ack
-					jz		rec_ack:
+					jz		recieved_ack
 recieved_nack:		mov.b	#01h, R12
 					jmp 	recieved_finally
 recieved_ack:		mov.b	#00h, R12
