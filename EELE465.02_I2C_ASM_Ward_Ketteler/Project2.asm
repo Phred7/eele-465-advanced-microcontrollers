@@ -228,9 +228,9 @@ rx_byte_for:		dec.b	R7
 					bis.b	#BIT2, &P3OUT			; SCL high
 					bit.b	#BIT3, &P3IN			; tests the value of P3.3. If z=1 we got a 0, if z=0 we got an 1
 					jz		rx_one
-rx_zero:			clrc
+rx_zero:			setc
 					jmp		rx_delay
-rx_one:				setc
+rx_one:				clrc
 rx_delay:			rlc.b	R10
 					call 	#delay					; bit delay
 					bic.b	#BIT2, &P3OUT			; SCL low
