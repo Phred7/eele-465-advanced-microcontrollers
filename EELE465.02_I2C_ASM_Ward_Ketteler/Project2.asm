@@ -26,12 +26,12 @@ StopWDT     		mov.w   #WDTPW|WDTHOLD,&WDTCTL  ; Stop watchdog timer
 ;	R4 - delay subroutine reserved
 ;	R5 - delay subroutine reserved
 ;	R6 - delay subroutine reserved
-;	R7 - transmit byte
+;	R7 - loop counter
 ;	R8 - transmit byte
 ;	R9 - transmit byte
-;	R10
+;	R10 - recieve byte
 ;	R11
-;	R12 - test what kind of ack was returned by the RTC
+;	R12 - Represents the state of the last acknowledgment recieved from the RTC. 00h == ACK. 01h == NACK.
 ;	R13
 ;	R14
 ;	R15
@@ -73,35 +73,38 @@ init:
 					bis.b	#BIT3, &P3OUT			; SDA
 
 main:
-					; start condition
-					call 	#i2c_start
-
-					; send addr and data
-					mov.b	transmit_byte, R8		; i2c addr	; mov.b	#055h, R8
-					clrc							; TODO: if read/write bit set/clear C then rotate with carry
-					rlc.b 	R8
-					call	#i2c_send
+					; 1st packet: RTC Addr+W and Register Addr.
+					call 	#i2c_start				; start condition
+					mov.b	transmit_byte, R8		; i2c addr into R8
+					clrc							; read/write bit set/clear C then rotate with carry
+					rlc.b 	R8						; rotate R8 to append W/R bit to end
+					call	#i2c_send				; send addr
 					tst.b	R12						; tests to see if the MSP recieved a NACK
-					jnz		nak_ed					; if the MSP recieved a NACK
-
-					; send data (0-9)
-					;mov.b 	#00h, R11
-					;mov.b	#0Ah, R10				; loop counter (08h sends 8 bits)
-;for:				dec.b	R10
-					;mov.b	R11, R8
-					;call	#i2c_send
-					;tst.b	R12						; tests to see if the MSP recieved a NACK
-					;jnz		nak_ed				; if the MSP recieved a NACK
-					;add.b	#01h, R11				; add 1 to send data
-					;cmp		#00h, R10				; compare R10 to 0
-					;jnz		for						; if R10 is not 0 then continue iterating
-
-					; stop condition
+					jnz		nak_ed					; if the MSP recieved a NACK jump
+					mov.b	seconds_register, R8	; mov the value of the seconds_register into R8
+					call 	#i2c_send				; send seconds register addr
+					tst.b	R12						; tests to see if the MSP recieved a NACK
+					jnz		nak_ed					; if the MSP recieved a NACK jump
 					call	#i2c_stop				; sends i2c stop condition (same as re-start condition but should only happen after an ACK. If a NACK resend)
+
+					; 2nd packet: RTC Addr+R and data.
+;main:
+					call	#i2c_start
+					mov.b	transmit_byte, R8		; i2c addr into R8
+					setc							; read/write bit set/clear C then rotate with carry
+					rlc.b 	R8						; rotate R8 to append W/R bit to end
+					call	#i2c_send				; send addr
+					tst.b	R12						; tests to see if the MSP recieved a NACK
+					jnz		nak_ed					; if the MSP recieved a NACK jump
+					call	#i2c_recieve
+					call	#i2c_stop				; sends i2c stop condition (same as re-start condition but should only happen after an ACK. If a NACK resend)
+
+					mov.b	seconds, R13
+					mov.b	minutes, R14
+					mov.b	hours, R15
 
 					jmp 	main
 					nop
-
 nak_ed:
 					call	#i2c_stop
 					jmp 	main
@@ -111,6 +114,7 @@ nak_ed:
 ; Subroutines
 ;-------------------------------------------------------------------------------
 
+; Delay
 short_delay:		mov.w	global_short_outer_delay, R4	; sets outer loop delay
 					mov.w	global_short_inner_delay, R6
 					jmp		inner_loop
@@ -126,7 +130,7 @@ dec_inner:			dec		R5						; decrements inner delay reg
 					ret
 
 
-
+; I2C Start Condition
 i2c_start:
 					; start condition implies that SCL must be high and SDA must change from H->L then SCL->L
 					call 	#delay
@@ -137,7 +141,7 @@ i2c_start:
 					ret
 
 
-
+; I2C Stop Condition
 i2c_stop:
 					bis.b	#BIT2, &P3OUT			; SCL high
 					call	#delay
@@ -151,15 +155,14 @@ i2c_stop:
 					ret
 
 
-
+; I2C Send
 i2c_send:
 					call	#i2c_tx_byte
-					;call	#ack					; simulates recieving an ACK
 					call 	#recieve_ack
 					ret
 
 
-
+; I2C Tx Byte
 i2c_tx_byte:		; R8 stores byte data to transmit
 					mov.b	#08h, R7				; loop counter (08h sends 8 bits)
 tx_byte_for:		dec.b	R7
@@ -180,7 +183,7 @@ tx_byte_for_cmp:	cmp		#00h, R7				; compare R7 to 0
 					ret
 
 
-
+; I2C Recieve Acknowledgement
 recieve_ack:
 					bis.b	#BIT3, &P3OUT			; SDA high
 					bic.b	#BIT3, &P3DIR			; SDA as input
@@ -197,24 +200,63 @@ recieved_finally:	call 	#delay					; bit delay
 					call	#short_delay			; stability delay
 					bis.b	#BIT3, &P3DIR			; SDA as output
 					bic.b	#BIT3, &P3OUT			; SDA low
+					call	#short_delay
 					ret
 
 
+; I2C Recieve
+i2c_recieve:
+					call	#i2c_rx_byte
+					mov.b	R10, seconds
+					call 	#ack
+					call	#i2c_rx_byte
+					mov.b	R10, minutes
+					call 	#ack
+					call	#i2c_rx_byte
+					mov.b	R10, hours
+					call 	#nack
+					ret
 
+
+; I2C Rx Byte
+i2c_rx_byte:
+					mov.b	#08h, R7				; loop counter (08h sends 8 bits)
+					mov.w	#00h, R10
+					bic.b	#BIT3, &P3DIR
+rx_byte_for:		dec.b	R7
+					call	#short_delay			; stability delay
+					bis.b	#BIT2, &P3OUT			; SCL high
+					bit.b	#BIT3, &P3IN			; tests the value of P3.3. If z=1 we got a 0, if z=0 we got an 1
+					jz		rx_one
+rx_zero:			clrc
+					jmp		rx_delay
+rx_one:				setc
+rx_delay:			rlc.b	R10
+					call 	#delay					; bit delay
+					bic.b	#BIT2, &P3OUT			; SCL low
+					call	#short_delay			; stability delay
+					call	#delay
+					cmp		#00h, R7				; compare R7 to 0
+					jnz		rx_byte_for				; if R7 is not 0 then continue iterating
+					bis.b	#BIT3, &P3DIR
+					ret
+
+; ACK
 ack:				; this simulates an ACK
 					bic.b	#BIT3, &P3OUT			; SDA low
 					call	#clock_pulse
 					ret
 
 
-
+; NACK
 nack:				; this simulates an NACK
 					bis.b	#BIT3, &P3OUT			; SDA high
 					call	#clock_pulse
+					bic.b	#BIT3, &P3OUT			; SDA low
 					ret
 
 
-
+; SCL Pulse
 clock_pulse:
 					call	#short_delay			; stability delay
 					bis.b	#BIT2, &P3OUT			; SCL high
@@ -244,7 +286,7 @@ timer_b0_isr:
 global_short_outer_delay:		.short	00001h
 global_short_inner_delay:		.short  00001h
 
-global_outer_delay:		.short	00005h
+global_outer_delay:		.short	000005h
 global_inner_delay:		.short  00002h
 
 ;global_short_outer_delay:	.short	00BD3h
@@ -253,7 +295,11 @@ global_inner_delay:		.short  00002h
 ;global_outer_delay:	.short	00BD3h
 ;global_inner_delay:	.short  00072h
 
-transmit_byte:		.byte  00068h					; DS3231 Addr: 1101000 = 068h
+transmit_byte:		.byte  	00068h					; DS1337 Addr: 1101000 = 068h
+seconds_register: 	.byte	00000h					; Seconds register address on the DS1337
+seconds:			.byte	00000h
+minutes:			.byte	00000h
+hours:				.byte	00000h
 
 ;-------------------------------------------------------------------------------
 ; Stack Pointer definition
