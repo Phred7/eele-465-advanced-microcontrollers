@@ -31,46 +31,19 @@ StopWDT     		mov.w   #WDTPW|WDTHOLD,&WDTCTL  ; Stop watchdog timer
 ;	R9 - transmit byte
 ;	R10 - recieve byte
 ;	R11
-;	R12 - Represents the state of the last acknowledgment recieved from the RTC. 00h == ACK. 01h == NACK.
-;	R13
-;	R14
-;	R15
+;	R12 - Represents the state of the last acknowledgment recieved via I2C. 00h == ACK. 01h == NACK.
+;	R13 - Contains seconds val. from mem for ease of viewing
+;	R14 - Contains minutes val. from mem for ease of viewing
+;	R15 - Contains hours val. from mem for ease of viewing
 ;-------------------------------------------------------------------------------
 init:
-					bis.b	#BIT6, &P6DIR 			; set green LED2 as out - reps SCL
-					bic.b	#BIT6, &P6OUT 			; set init val to 0
-
-					bis.b	#BIT0, &P1DIR 			; set red LED1 as out - reps SDA
-					bic.b	#BIT0, &P1OUT 			; set init val to 0
-
 					bis.b	#BIT2, &P3DIR			; set P3.2 as out for SCL
 					bic.b	#BIT2, &P3OUT			; set init val to 0
 
 					bis.b	#BIT3, &P3DIR			; set P3.3 as out for SDA
 					bic.b	#BIT3, &P3OUT			; set init val to 0
 
-					; setup timer TB0:
-					bis.w	#TBCLR, &TB0CTL 		; clears timers and dividers
-					bis.w	#TBSSEL__SMCLK, &TB0CTL	; choose clock (f = 1 MHz)
-					bis.w	#MC__UP, &TB0CTL		; choose mode (UP)
-
-					bis.w	#CNTL_0, &TB0CTL		; choose counter length (N = 2^16)
-					bis.w	#ID__4, &TB0CTL			; choose divider for D1 (D1 = 4)
-					bis.w 	#TBIDEX__8, &TB0EX0		; choose divider for D2 (D2 = 8)
-
-					; TB0 interrupt: Compare
-					mov.w	#32992d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for ~0.5Hz
-					bis.w	#CCIE, &TB0CCTL0
-					bic.w	#CCIFG, &TB0CCTL0
-
-					nop
-					eint							; assert global interrupt flag
-					nop
-
 					bic.b	#LOCKLPM5, &PM5CTL0		; disable DIO low-power default
-
-					bis.b	#BIT2, &P3OUT			; SCL
-					bis.b	#BIT3, &P3OUT			; SDA
 
 main:
 					; 1st packet: RTC Addr+W and Register Addr.
@@ -195,9 +168,7 @@ recieve_ack:
 recieved_nack:		mov.b	#01h, R12
 					jmp 	recieved_finally
 recieved_ack:		mov.b	#00h, R12
-recieved_finally:	call 	#delay					; bit delay
-					bic.b	#BIT2, &P3OUT			; SCL low
-					call	#short_delay			; stability delay
+recieved_finally:	call 	#clock_pulse_half
 					bis.b	#BIT3, &P3DIR			; SDA as output
 					bic.b	#BIT3, &P3OUT			; SDA low
 					call	#short_delay
@@ -206,6 +177,7 @@ recieved_finally:	call 	#delay					; bit delay
 
 ; I2C Recieve
 i2c_recieve:
+					; recieve 3 bytes, write each to mem, send acks and nacks when applicable
 					call	#i2c_rx_byte
 					mov.b	R10, seconds
 					call 	#ack
@@ -227,14 +199,12 @@ rx_byte_for:		dec.b	R7
 					call	#short_delay			; stability delay
 					bis.b	#BIT2, &P3OUT			; SCL high
 					bit.b	#BIT3, &P3IN			; tests the value of P3.3. If z=1 we got a 0, if z=0 we got an 1
-					jz		rx_one
-rx_zero:			setc
+					jz		rx_zero
+rx_one:				setc
 					jmp		rx_delay
-rx_one:				clrc
+rx_zero:			clrc
 rx_delay:			rlc.b	R10
-					call 	#delay					; bit delay
-					bic.b	#BIT2, &P3OUT			; SCL low
-					call	#short_delay			; stability delay
+					call 	#clock_pulse_half
 					call	#delay
 					cmp		#00h, R7				; compare R7 to 0
 					jnz		rx_byte_for				; if R7 is not 0 then continue iterating
@@ -266,15 +236,12 @@ clock_pulse:
 					ret
 
 
-;-------------------------------------------------------------------------------
-; Interrupt Service Routines
-;-------------------------------------------------------------------------------
-
-; Service TB0
-timer_b0_isr:
-					bic.w	#TBIFG, &TB0CTL
-					reti
-;-------------- END service_TB0 --------------
+; SCL half pulse
+clock_pulse_half:
+					call 	#delay					; bit delay
+					bic.b	#BIT2, &P3OUT			; SCL low
+					call	#short_delay			; stability delay
+					ret
                                             
 ;-------------------------------------------------------------------------------
 ; Memory Allocation
@@ -312,6 +279,3 @@ hours:				.byte	00000h
 ;-------------------------------------------------------------------------------
 	            	.sect   ".reset"                ; MSP430 RESET Vector
 	            	.short  RESET
-
-	            	.sect	".int43"				; TB0CCR0
-	            	.short	timer_b0_isr
