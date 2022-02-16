@@ -4,7 +4,6 @@
 ; Jan. 28 2021
 ; Bit Banging the I2C Protocol
 ;
-;
 ;--------------------------------Notes------------------------------------------
 ; SDA is P3.3
 ; SCL is P3.2
@@ -36,6 +35,7 @@ init:
 ;-- Setup LED2
 		bis.b	#BIT6, &P6DIR			; Set P6.6 as an output		P6.6 is LED2
 		bic.b	#BIT6, &P6OUT			; Clear LED2 initially
+
 		bic.b	#LOCKLPM5, &PM5CTL0		; Disbale the GPIO power-on default high-Z mode
 
 ;-- Setup SDA and SCL Ports
