@@ -9,21 +9,21 @@ CMD_SRCS += \
 ../lnk_msp430fr2355.cmd 
 
 ASM_SRCS += \
-../EELE465.03_Keypad_Ketteler_Ward.asm 
+../Project3.asm 
 
 OBJS += \
-./EELE465.03_Keypad_Ketteler_Ward.obj 
+./Project3.obj 
 
 ASM_DEPS += \
-./EELE465.03_Keypad_Ketteler_Ward.d 
+./Project3.d 
 
 OBJS__QUOTED += \
-"EELE465.03_Keypad_Ketteler_Ward.obj" 
+"Project3.obj" 
 
 ASM_DEPS__QUOTED += \
-"EELE465.03_Keypad_Ketteler_Ward.d" 
+"Project3.d" 
 
 ASM_SRCS__QUOTED += \
-"../EELE465.03_Keypad_Ketteler_Ward.asm" 
+"../Project3.asm" 
 
 

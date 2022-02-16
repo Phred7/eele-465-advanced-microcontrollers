@@ -10,7 +10,7 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
-"./EELE465.03_Keypad_Ketteler_Ward.obj" \
+"./Project3.obj" \
 "../lnk_msp430fr2355.cmd" \
 $(GEN_CMDS__FLAG) \
 -lfrwp_init.a \
@@ -155,8 +155,8 @@ EELE465.03_Keypad_ASM_Ward_Ketteler.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "EELE465.03_Keypad_Ketteler_Ward.obj" 
-	-$(RM) "EELE465.03_Keypad_Ketteler_Ward.d" 
+	-$(RM) "Project3.obj" 
+	-$(RM) "Project3.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

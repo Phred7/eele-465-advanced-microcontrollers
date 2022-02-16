@@ -1,1 +1,1 @@
-"./EELE465.03_Keypad_Ketteler_Ward.obj" "../lnk_msp430fr2355.cmd" -lfrwp_init.a -llibc.a 
+"./Project3.obj" "../lnk_msp430fr2355.cmd" -lfrwp_init.a -llibc.a 

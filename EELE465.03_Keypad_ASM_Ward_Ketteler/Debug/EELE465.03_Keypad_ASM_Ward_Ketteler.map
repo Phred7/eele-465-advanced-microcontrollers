@@ -1,7 +1,7 @@
 ******************************************************************************
                   MSP430 Linker PC v20.2.5                     
 ******************************************************************************
->> Linked Wed Feb 16 10:14:10 2022
+>> Linked Wed Feb 16 10:25:07 2022
 
 OUTPUT FILE NAME:   <EELE465.03_Keypad_ASM_Ward_Ketteler.out>
 ENTRY POINT SYMBOL: "RESET"  address: 00008000
@@ -17,7 +17,7 @@ MEMORY CONFIGURATION
   TLVMEM                00001a00   00000200  00000000  00000200  RWIX
   BOOTCODE              00001c00   00000400  00000000  00000400  RWIX
   RAM                   00002000   00001000  00000001  00000fff  RWIX
-  FRAM                  00008000   00007f80  00000078  00007f08  RWIX
+  FRAM                  00008000   00007f80  00000088  00007ef8  RWIX
   JTAGSIGNATURE         0000ff80   00000004  00000004  00000000  RWIX  ffff 
   BSLSIGNATURE          0000ff84   00000004  00000004  00000000  RWIX  ffff 
   BSLCONFIGURATIONSIGNA 0000ff88   00000002  00000002  00000000  RWIX  ffff 
@@ -103,15 +103,15 @@ section   page    origin      length       input sections
 
 .const     0    00008000    00000000     UNINITIALIZED
 
-.text      0    00008000    00000070     
-                  00008000    00000070     EELE465.03_Keypad_Ketteler_Ward.obj (.text)
+.text      0    00008000    00000080     
+                  00008000    00000080     Project3.obj (.text)
 
 .text:_isr 
-*          0    00008070    00000008     
-                  00008070    00000008     rts430x_sc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
+*          0    00008080    00000008     
+                  00008080    00000008     rts430x_sc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
 
 .data      0    00002000    00000001     
-                  00002000    00000001     EELE465.03_Keypad_Ketteler_Ward.obj (.data)
+                  00002000    00000001     Project3.obj (.data)
 
 .stack     0    00003000    00000000     
 
@@ -190,7 +190,7 @@ TIMER0_B1
 
 TIMER0_B0 
 *          0    0000fff8    00000002     
-                  0000fff8    00000002     EELE465.03_Keypad_Ketteler_Ward.obj (.int43)
+                  0000fff8    00000002     Project3.obj (.int43)
 
 UNMI       0    0000fffa    00000002     
                   0000fffa    00000002     rts430x_sc_sd_eabi.lib : int44.asm.obj (.int44)
@@ -199,7 +199,7 @@ SYSNMI     0    0000fffc    00000002
                   0000fffc    00000002     rts430x_sc_sd_eabi.lib : int45.asm.obj (.int45)
 
 .reset     0    0000fffe    00000002     
-                  0000fffe    00000002     EELE465.03_Keypad_Ketteler_Ward.obj (.reset)
+                  0000fffe    00000002     Project3.obj (.reset)
 
 $fill000   0    0000ff80    00000004     
                   0000ff80    00000004     --HOLE-- [fill = ffff]
@@ -218,43 +218,43 @@ $fill004   0    0000ffa0    00000002
 
 MODULE SUMMARY
 
-       Module                                code   ro data   rw data
-       ------                                ----   -------   -------
+       Module             code   ro data   rw data
+       ------             ----   -------   -------
     .\
-       EELE465.03_Keypad_Ketteler_Ward.obj   112    4         1      
-    +--+-------------------------------------+------+---------+---------+
-       Total:                                112    4         1      
-                                                                     
+       Project3.obj       128    4         1      
+    +--+------------------+------+---------+---------+
+       Total:             128    4         1      
+                                                  
     C:\ti\ccs1040\ccs\tools\compiler\ti-cgt-msp430_20.2.5.LTS\lib\rts430x_sc_sd_eabi.lib
-       isr_trap.asm.obj                      8      0         0      
-       int22.asm.obj                         0      2         0      
-       int23.asm.obj                         0      2         0      
-       int24.asm.obj                         0      2         0      
-       int25.asm.obj                         0      2         0      
-       int26.asm.obj                         0      2         0      
-       int27.asm.obj                         0      2         0      
-       int28.asm.obj                         0      2         0      
-       int29.asm.obj                         0      2         0      
-       int30.asm.obj                         0      2         0      
-       int31.asm.obj                         0      2         0      
-       int32.asm.obj                         0      2         0      
-       int33.asm.obj                         0      2         0      
-       int34.asm.obj                         0      2         0      
-       int35.asm.obj                         0      2         0      
-       int36.asm.obj                         0      2         0      
-       int37.asm.obj                         0      2         0      
-       int38.asm.obj                         0      2         0      
-       int39.asm.obj                         0      2         0      
-       int40.asm.obj                         0      2         0      
-       int41.asm.obj                         0      2         0      
-       int42.asm.obj                         0      2         0      
-       int44.asm.obj                         0      2         0      
-       int45.asm.obj                         0      2         0      
-    +--+-------------------------------------+------+---------+---------+
-       Total:                                8      46        0      
-                                                                     
-    +--+-------------------------------------+------+---------+---------+
-       Grand Total:                          120    50        1      
+       isr_trap.asm.obj   8      0         0      
+       int22.asm.obj      0      2         0      
+       int23.asm.obj      0      2         0      
+       int24.asm.obj      0      2         0      
+       int25.asm.obj      0      2         0      
+       int26.asm.obj      0      2         0      
+       int27.asm.obj      0      2         0      
+       int28.asm.obj      0      2         0      
+       int29.asm.obj      0      2         0      
+       int30.asm.obj      0      2         0      
+       int31.asm.obj      0      2         0      
+       int32.asm.obj      0      2         0      
+       int33.asm.obj      0      2         0      
+       int34.asm.obj      0      2         0      
+       int35.asm.obj      0      2         0      
+       int36.asm.obj      0      2         0      
+       int37.asm.obj      0      2         0      
+       int38.asm.obj      0      2         0      
+       int39.asm.obj      0      2         0      
+       int40.asm.obj      0      2         0      
+       int41.asm.obj      0      2         0      
+       int42.asm.obj      0      2         0      
+       int44.asm.obj      0      2         0      
+       int45.asm.obj      0      2         0      
+    +--+------------------+------+---------+---------+
+       Total:             8      46        0      
+                                                  
+    +--+------------------+------+---------+---------+
+       Grand Total:       136    50        1      
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
@@ -1170,7 +1170,7 @@ address   name
 000001cc  WDTCTL_L                       
 00003000  __STACK_END                    
 00000000  __STACK_SIZE                   
-00008070  __TI_ISR_TRAP                  
+00008080  __TI_ISR_TRAP                  
 0000ffce  __TI_int22                     
 0000ffd0  __TI_int23                     
 0000ffd2  __TI_int24                     
@@ -2126,7 +2126,7 @@ address   name
 00008000  RESET                          
 00008000  fram_rw_start                  
 00008000  fram_rx_start                  
-00008070  __TI_ISR_TRAP                  
+00008080  __TI_ISR_TRAP                  
 0000ffce  __TI_int22                     
 0000ffd0  __TI_int23                     
 0000ffd2  __TI_int24                     

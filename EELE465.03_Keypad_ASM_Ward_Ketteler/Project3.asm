@@ -62,9 +62,30 @@ init:
 			bic.b	#LOCKLPM5, &PM5CTL0		; disable DIO low-power default
 
 main:
-			bis.b	#0FFFFh, &P3OUT
-			jmp main
+			; while
+			call	#pattern_a
+			jmp 	main
 			nop
+
+check_keypad:
+			ret
+
+pattern_a:
+			; disable timer interrupt
+			bis.b pattern_A_bit_mask, &P3OUT
+			ret
+
+pattern_b:
+			ret
+
+pattern_c:
+			ret
+
+pattern_d:
+			ret
+
+unlock_code:
+			ret
 
 
 ;-------------------------------------------------------------------------------
