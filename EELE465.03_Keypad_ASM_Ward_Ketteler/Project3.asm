@@ -47,13 +47,13 @@ init:
 			bis.w	#TBSSEL__SMCLK, &TB0CTL	; choose clock (f = 1 MHz)
 			bis.w	#MC__UP, &TB0CTL		; choose mode (UP)
 			bis.w	#CNTL_0, &TB0CTL		; choose counter length (N = 2^16)
-			bis.w	#ID__4, &TB0CTL			; choose divider for D1 (D1 = 4)
+			bis.w	#ID__8, &TB0CTL			; choose divider for D1 (D1 = 4)
 			bis.w 	#TBIDEX__8, &TB0EX0		; choose divider for D2 (D2 = 8)
 
 			;-- Setup TB0 Interrupt: Compare
 			mov.w	#32992d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
-			bis.w	#CCIE, &TB0CCTL0
-			bic.w	#CCIFG, &TB0CCTL0
+			bis.w	#CCIE, &TB0CCTL0		; enable overflow interrupt
+			bic.w	#CCIFG, &TB0CCTL0		; disable interrupt flag
 
 			nop
 			eint							; assert global interrupt flag
@@ -63,7 +63,33 @@ init:
 
 main:
 			; while
-			call	#pattern_a
+
+			call 	#check_keypad
+
+			cmp.b	#081h, R4				; if z=1 A was pressed
+			jz		p_a
+			cmp.b	#041h, R4				; if z=1 B was pressed
+			jz		p_b
+			cmp.b	#021h, R4				; if z=1 C was pressed
+			jz		p_c
+			cmp.b	#011h, R4				; if z=1  was pressed
+			jz		p_d
+			jmp 	p_end
+
+p_a:		call	#pattern_a
+			jmp		p_end
+p_b:		call	#pattern_b
+			jmp		p_end
+p_c:		call	#pattern_c
+			jmp		p_end
+p_d:		call	#pattern_d
+			jmp		p_end
+p_end:
+			cmp.b	#00h, R4
+			jz		end_main				; if R4 is not 00h then move R4 into R6
+			mov.w 	R4, R6
+end_main:
+			mov.w	#00h, R4
 			jmp 	main
 			nop
 
@@ -71,14 +97,20 @@ check_keypad:
 			ret
 
 pattern_a:
-			; disable timer interrupt
+			bic.w	#CCIE, &TB0CCTL0		; disable timer interrupt
 			bis.b pattern_A_bit_mask, &P3OUT
 			ret
 
 pattern_b:
+			mov.w	#15625d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
+			bis.w	#CCIE, &TB0CCTL0
+
 			ret
 
 pattern_c:
+			mov.w	#32992d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
+			bis.w	#CCIE, &TB0CCTL0
+			bis.b 	R7, &P3OUT
 			ret
 
 pattern_d:
