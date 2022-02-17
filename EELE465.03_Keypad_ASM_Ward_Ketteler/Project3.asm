@@ -61,6 +61,12 @@ init:
 
 			bic.b	#LOCKLPM5, &PM5CTL0		; disable DIO low-power default
 
+			mov.w	#00h, R4
+			mov.w	#00h, R5
+			mov.w	#00h, R6
+			mov.w	#00h, R7
+			mov.w	#00h, R8
+
 main:
 			; while
 
@@ -94,22 +100,28 @@ end_main:
 			nop
 
 check_keypad:
+			mov.b	#021h, R4
 			ret
 
 pattern_a:
 			bic.w	#CCIE, &TB0CCTL0		; disable timer interrupt
-			bis.b pattern_A_bit_mask, &P3OUT
+			bis.b	pattern_A_bit_mask, &P3OUT
 			ret
 
 pattern_b:
 			mov.w	#15625d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
 			bis.w	#CCIE, &TB0CCTL0
-
+			cmp.b	R4, R5					; if the last button press was B and this button press was B z=1 and restart the pattern
+			jnz		b_cmp_end
+			mov.w	#00h, R6
+b_cmp_end:	mov.b	#008h, R6				; test code
+			bis.b	R6, &P3OUT
 			ret
 
 pattern_c:
 			mov.w	#32992d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
 			bis.w	#CCIE, &TB0CCTL0
+			mov.b	#0FFh, R7				; test code
 			bis.b 	R7, &P3OUT
 			ret
 
@@ -151,6 +163,6 @@ pattern_A_bit_mask: 	.byte	0AAh	; 010101010b
             .sect   ".reset"                ; MSP430 RESET Vector
             .short  RESET
             
-            .sect	".int43"				; TB0CCR0
+            .sect	".int43"				; TB0CCR0 compare interrupt vector
             .short	TimerB0_ISR
 
