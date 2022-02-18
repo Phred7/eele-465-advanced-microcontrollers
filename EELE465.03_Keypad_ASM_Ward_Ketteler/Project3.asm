@@ -34,14 +34,16 @@ StopWDT     mov.w   #WDTPW|WDTHOLD,&WDTCTL  ; Stop watchdog timer
 ;-------------------------------------------------------------------------------
 init:
 			;-- Setup LED bar as output on P3
-			bis.b	#0FFFFh, &P3DIR
+			bis.b	#0FFFFh, &P3DIR			; Set as output
 			bic.b	#0FFFFh, &P3OUT
 
 			;-- Setup Keypad
-			bic.b	#000FFh, &P5DIR
-			bic.b	#000FFh, &P5OUT
-			bic.b	#000FFh, &P6DIR
-			bic.b	#000FFh, &P6OUT
+			bic.b	#0000Fh, &P5DIR			; Set as input
+			bis.b	#0000Fh, &P5REN			; EN pull up/down
+			bic.b	#0000Fh, &P5OUT			; All pull down
+			bic.b	#0000Fh, &P6DIR			; Set as input
+			bis.b	#0000Fh, &P6REN			; EN pull up/down
+			bic.b	#0000Fh, &P6OUT			; All pull down
 
 			;-- Setup timber TB0: delta-5 = 1sec
 			bis.w	#TBCLR, &TB0CTL 		; clears timers and dividers
@@ -103,9 +105,47 @@ end_main:
 			nop
 
 check_keypad:
-			mov.b	#041h, R4
-			mov.b	#01h, R5
-			ret
+			;mov.b	#041h, R4
+			;mov.b	#01h, R5
+
+			;-- P6.0-P6.3 as input with pull down
+			bic.b	#0000Fh, &P6DIR			; Set as input
+			bis.b	#0000Fh, &P6REN			; EN pull up/down
+			bic.b	#0000Fh, &P6OUT			; All pull down
+
+			;-- P5.0-P5.3 as out and set HIGH
+			bis.b	#0000Fh, &P5DIR  ; set rows high then check columns ; Set as output
+			bis.b	#0000Fh, &P5OUT
+
+			mov.b	&P6IN, R11
+
+			;-- P5.0-P5.3 as input with pull down
+			bic.b	#0000Fh, &P5DIR			; Set as input
+			bis.b	#0000Fh, &P5REN			; EN pull up/down
+			bic.b	#0000Fh, &P5OUT			; All pull down
+
+			;-- P6.0-P6.3 as out and set HIGH
+			bis.b	#0000Fh, &P6DIR  ; set rows high then check columns ; Set as output
+			bis.b	#0000Fh, &P6OUT
+
+			;-- Check BIT0 set
+			; bit.b	#BIT0, &P5IN			; if Z==0 then the BIT0 is not set in P5IN
+
+			;-- Attempt to combine P6 and P5 with P6.3 being MSB and P5.0 being LSB
+			setc
+			rlc.b	R11
+			setc
+			rlc.b	R11
+			setc
+			rlc.b	R11
+			setc
+			rlc.b	R11
+			mov.b	#0F0h, R12
+			or.b	&P5IN, R12
+			and.b	R12, R11	; use R4 instead of R11
+
+
+ck_end:		ret
 
 pattern_a:
 			bic.w	#CCIE, &TB0CCTL0		; disable timer interrupt
