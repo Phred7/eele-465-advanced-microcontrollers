@@ -1,7 +1,7 @@
 ******************************************************************************
                   MSP430 Linker PC v20.2.5                     
 ******************************************************************************
->> Linked Mon Feb 21 10:50:33 2022
+>> Linked Mon Feb 21 12:49:37 2022
 
 OUTPUT FILE NAME:   <EELE465.03_Keypad_ASM_Ward_Ketteler.out>
 ENTRY POINT SYMBOL: "RESET"  address: 00008000
@@ -16,8 +16,8 @@ MEMORY CONFIGURATION
   INFO                  00001800   00000200  00000000  00000200  RWIX
   TLVMEM                00001a00   00000200  00000000  00000200  RWIX
   BOOTCODE              00001c00   00000400  00000000  00000400  RWIX
-  RAM                   00002000   00001000  00000001  00000fff  RWIX
-  FRAM                  00008000   00007f80  000001c6  00007dba  RWIX
+  RAM                   00002000   00001000  00000007  00000ff9  RWIX
+  FRAM                  00008000   00007f80  0000022a  00007d56  RWIX
   JTAGSIGNATURE         0000ff80   00000004  00000004  00000000  RWIX  ffff 
   BSLSIGNATURE          0000ff84   00000004  00000004  00000000  RWIX  ffff 
   BSLCONFIGURATIONSIGNA 0000ff88   00000002  00000002  00000000  RWIX  ffff 
@@ -103,15 +103,15 @@ section   page    origin      length       input sections
 
 .const     0    00008000    00000000     UNINITIALIZED
 
-.text      0    00008000    000001be     
-                  00008000    000001be     Project3.obj (.text)
+.text      0    00008000    00000222     
+                  00008000    00000222     Project3.obj (.text)
 
 .text:_isr 
-*          0    000081be    00000008     
-                  000081be    00000008     rts430x_sc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
+*          0    00008222    00000008     
+                  00008222    00000008     rts430x_sc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
 
-.data      0    00002000    00000001     
-                  00002000    00000001     Project3.obj (.data)
+.data      0    00002000    00000007     
+                  00002000    00000007     Project3.obj (.data)
 
 .stack     0    00003000    00000000     
 
@@ -221,9 +221,9 @@ MODULE SUMMARY
        Module             code   ro data   rw data
        ------             ----   -------   -------
     .\
-       Project3.obj       446    4         1      
+       Project3.obj       546    4         7      
     +--+------------------+------+---------+---------+
-       Total:             446    4         1      
+       Total:             546    4         7      
                                                   
     C:\ti\ccs1040\ccs\tools\compiler\ti-cgt-msp430_20.2.5.LTS\lib\rts430x_sc_sd_eabi.lib
        isr_trap.asm.obj   8      0         0      
@@ -254,7 +254,7 @@ MODULE SUMMARY
        Total:             8      46        0      
                                                   
     +--+------------------+------+---------+---------+
-       Grand Total:       454    50        1      
+       Grand Total:       554    50        7      
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
@@ -1170,7 +1170,7 @@ address   name
 000001cc  WDTCTL_L                       
 00003000  __STACK_END                    
 00000000  __STACK_SIZE                   
-000081be  __TI_ISR_TRAP                  
+00008222  __TI_ISR_TRAP                  
 0000ffce  __TI_int22                     
 0000ffd0  __TI_int23                     
 0000ffd2  __TI_int24                     
@@ -2126,7 +2126,7 @@ address   name
 00008000  RESET                          
 00008000  fram_rw_start                  
 00008000  fram_rx_start                  
-000081be  __TI_ISR_TRAP                  
+00008222  __TI_ISR_TRAP                  
 0000ffce  __TI_int22                     
 0000ffd0  __TI_int23                     
 0000ffd2  __TI_int24                     

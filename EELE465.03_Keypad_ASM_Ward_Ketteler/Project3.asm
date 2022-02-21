@@ -11,7 +11,9 @@
 ; R7: Pattern C mask
 ; R8: Pattern D mask
 ; R9: Timer Interrupt Keypad Compare [1h: 'A', 2h: 'B', 3h: 'C', 4h: 'D']
-; R10: Second Keypad input byte
+; R10: Second Keypad input byte for check keypad
+; R11: Passcode Flag
+; R12: Passcode Count
 ;-------------------------------------------------------------------------------
             .cdecls C,LIST,"msp430.h"       ; Include device header file
             
@@ -70,15 +72,71 @@ init:
 			mov.w	#00h, R6
 			mov.w	#01111111b, R7
 			mov.w	#00h, R8
+			mov.w	#00h, R11
+			mov.w	#00h, R12
 
 			bic.b	#0FFFFh, &P3OUT
 
 
 
 main:
-			; while
+			cmp.b	#00h, R11			; if R11 == 0h the passcode has not been correctly entered. Z=1 when R11 is 0
+			jz		passcode
+			jmp		pattern
 
-			call 	#check_keypad
+passcode:
+			call	#check_keypad
+
+			;-- if R5 == 0 && R4 != 0. This should prevent the same button press from being detected more than once
+			cmp.b	#00h, R5
+			jnz		end_passcode
+			cmp.b	#00h, R4
+			jz		end_passcode
+
+			;-- Check value of count and write to respective data mem.
+			cmp.b	#00h, R12
+			jz		d1
+			cmp.b	#01h, R12
+			jz		d2
+			cmp.b	#02h, R12
+			jz		d3
+			jmp		end_digits
+
+d1:			mov.b	R4, entered_digit_1		; store R4 in ped1, overwites what is already in data mem.
+			jmp		end_digits
+d2:			mov.b	R4, entered_digit_2		; store R4 in ped2
+			jmp		end_digits
+d3:			mov.b	R4, entered_digit_3		; store R4 in ped3
+			jmp		end_digits
+
+end_digits:
+			cmp.b	#02h, R12			; if R12 is not 2h jmp to inc the counter and goto end passcode
+			jnz		inc_count
+			mov.b	#00h, R12
+
+passcode_cmp:
+			;-- Compare each digit of the passcode with the digit entered
+			cmp.b	passcode_digit_1, entered_digit_1	; if z==0 then pd1==epd1
+			jnz		inc_count
+			cmp.b	passcode_digit_2, entered_digit_2	; if z==0 then pd2==epd2
+			jnz		inc_count
+			cmp.b	passcode_digit_3, entered_digit_3	; if z==0 then pd3==epd3
+			jnz		inc_count
+
+			;-- passcode is correct
+			mov.w	#001h, R11						; set passcode flag
+			mov.w	#00h, R5
+			mov.w	#00h, R4
+			jmp 	main
+
+
+inc_count:	inc.b	R12
+end_passcode:
+			mov.b	R4, R5
+			mov.w	#00h, R4
+			jmp 	main
+
+pattern:	call 	#check_keypad
 
 			;-- Compare the current keypress with known values
 			cmp.b	#081h, R4				; if z=1 A was pressed
@@ -126,11 +184,6 @@ end_main:
 
 
 check_keypad:
-			;mov.b	#041h, R4
-			;mov.b	#01h, R5
-
-			;-- Check BIT0 set
-			; bit.b	#BIT0, &P5IN			; if Z==0 then the BIT0 is not set in P5IN
 
 			;-- P6.0-P6.3 as input with pull down
 			bic.b	#0000Fh, &P6DIR			; Set as input
@@ -161,9 +214,9 @@ check_keypad:
 			rlc.b	R4
 			setc
 			rlc.b	R4
-			mov.b	#0F0h, R12
-			or.b	&P5IN, R12
-			and.b	R12, R4
+			mov.b	#0F0h, R10
+			or.b	&P5IN, R10
+			and.b	R10, R4
 
 ck_end:		ret
 
@@ -255,6 +308,14 @@ update_pattern_d:
 						.retain
 
 pattern_A_bit_mask: 	.byte	0AAh	; 010101010b
+
+passcode_digit_1:		.byte	028h		; 7d
+passcode_digit_2: 		.byte	084h		; 2d
+passcode_digit_3:		.byte	022h		; 9d
+
+entered_digit_1:		.byte	00h			; 0x2004
+entered_digit_2:		.byte	00h			; 0x2003
+entered_digit_3:		.byte	00h			; 0x2006
 
 ;-------------------------------------------------------------------------------
 ; Stack Pointer definition
