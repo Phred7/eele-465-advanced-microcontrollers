@@ -11,6 +11,7 @@
 ; R7: Pattern C mask
 ; R8: Pattern D mask
 ; R9: Timer Interrupt Keypad Compare [1h: 'A', 2h: 'B', 3h: 'C', 4h: 'D']
+; R10: Second Keypad input byte
 ;-------------------------------------------------------------------------------
             .cdecls C,LIST,"msp430.h"       ; Include device header file
             
@@ -72,41 +73,64 @@ init:
 
 			bic.b	#0FFFFh, &P3OUT
 
+
+
 main:
 			; while
 
 			call 	#check_keypad
 
+			;-- Compare the current keypress with known values
 			cmp.b	#081h, R4				; if z=1 A was pressed
 			jz		p_a
 			cmp.b	#041h, R4				; if z=1 B was pressed
 			jz		p_b
 			cmp.b	#021h, R4				; if z=1 C was pressed
 			jz		p_c
-			cmp.b	#011h, R4				; if z=1  was pressed
+			cmp.b	#011h, R4				; if z=1 D was pressed
 			jz		p_d
+
+			mov.w	#00h, R4
+
+			;-- At this point something else or nothing was pressed. So, check the last valid key that was pressed
+			cmp.b	#081h, R5				; if z=1 A was pressed
+			jz		p_a
+			cmp.b	#041h, R5				; if z=1 B was pressed
+			jz		p_b
+			cmp.b	#021h, R5				; if z=1 C was pressed
+			jz		p_c
+			cmp.b	#011h, R5				; if z=1 D was pressed
+			jz		p_d
+
 			jmp 	p_end
 
 p_a:		call	#pattern_a
+			call 	#update_r5
 			jmp		p_end
 p_b:		call	#pattern_b
+			call 	#update_r5
 			jmp		p_end
 p_c:		call	#pattern_c
+			call 	#update_r5
 			jmp		p_end
 p_d:		call	#pattern_d
+			call 	#update_r5
 			jmp		p_end
 p_end:
-			cmp.b	#00h, R4
-			jz		end_main				; if R4 is not 00h then move R4 into R6
-			mov.w 	R4, R5
+
 end_main:
 			mov.w	#00h, R4
 			jmp 	main
 			nop
 
+
+
 check_keypad:
 			;mov.b	#041h, R4
 			;mov.b	#01h, R5
+
+			;-- Check BIT0 set
+			; bit.b	#BIT0, &P5IN			; if Z==0 then the BIT0 is not set in P5IN
 
 			;-- P6.0-P6.3 as input with pull down
 			bic.b	#0000Fh, &P6DIR			; Set as input
@@ -114,10 +138,10 @@ check_keypad:
 			bic.b	#0000Fh, &P6OUT			; All pull down
 
 			;-- P5.0-P5.3 as out and set HIGH
-			bis.b	#0000Fh, &P5DIR  ; set rows high then check columns ; Set as output
+			bis.b	#0000Fh, &P5DIR  		; set rows high then check columns ; Set as output
 			bis.b	#0000Fh, &P5OUT
 
-			mov.b	&P6IN, R11
+			mov.b	&P6IN, R4
 
 			;-- P5.0-P5.3 as input with pull down
 			bic.b	#0000Fh, &P5DIR			; Set as input
@@ -125,33 +149,33 @@ check_keypad:
 			bic.b	#0000Fh, &P5OUT			; All pull down
 
 			;-- P6.0-P6.3 as out and set HIGH
-			bis.b	#0000Fh, &P6DIR  ; set rows high then check columns ; Set as output
+			bis.b	#0000Fh, &P6DIR  		; set rows high then check columns ; Set as output
 			bis.b	#0000Fh, &P6OUT
 
-			;-- Check BIT0 set
-			; bit.b	#BIT0, &P5IN			; if Z==0 then the BIT0 is not set in P5IN
-
-			;-- Attempt to combine P6 and P5 with P6.3 being MSB and P5.0 being LSB
+			;-- Combine P6.0-P6.3 and P5.0-P5.3 with P6.3 being MSB and P5.0 being LSB
 			setc
-			rlc.b	R11
+			rlc.b	R4
 			setc
-			rlc.b	R11
+			rlc.b	R4
 			setc
-			rlc.b	R11
+			rlc.b	R4
 			setc
-			rlc.b	R11
+			rlc.b	R4
 			mov.b	#0F0h, R12
 			or.b	&P5IN, R12
-			and.b	R12, R11	; use R4 instead of R11
-
+			and.b	R12, R4
 
 ck_end:		ret
+
+
 
 pattern_a:
 			bic.w	#CCIE, &TB0CCTL0		; disable timer interrupt
 			mov.b	#01h, R9
 			mov.b	pattern_A_bit_mask, &P3OUT
 			ret
+
+
 
 pattern_b:
 			mov.w	#1562d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
@@ -164,6 +188,8 @@ b_cmp_end:
 			mov.b	R6, &P3OUT
 			ret
 
+
+
 pattern_c:
 			mov.w	#3299d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
 			mov.b	#03h, R9
@@ -171,9 +197,21 @@ pattern_c:
 			mov.b 	R7, &P3OUT
 			ret
 
+
+
 pattern_d:
 			mov.b	#04h, R9
 			ret
+
+
+update_r5:
+			cmp.b	#00h, R4
+			jz		update_r5_end	; if R4 is not 00h, then update R5 with the value of R4
+			mov.w 	R4, R5
+update_r5_end:
+			ret
+
+
 
 unlock_code:
 			ret
