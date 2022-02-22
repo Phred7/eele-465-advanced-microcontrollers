@@ -75,6 +75,10 @@ init:
 			mov.w	#00h, R11
 			mov.w	#00h, R12
 
+			mov.b	#0FFh, entered_digit_1
+			mov.b	#0FFh, entered_digit_2
+			mov.b	#0FFh, entered_digit_3
+
 			bic.b	#0FFFFh, &P3OUT
 
 
@@ -83,6 +87,8 @@ main:
 			cmp.b	#00h, R11			; if R11 == 0h the passcode has not been correctly entered. Z=1 when R11 is 0
 			jz		passcode
 			jmp		pattern
+
+
 
 passcode:
 			call	#check_keypad
@@ -136,6 +142,8 @@ end_passcode:
 			mov.w	#00h, R4
 			jmp 	main
 
+
+
 pattern:	call 	#check_keypad
 
 			;-- Compare the current keypress with known values
@@ -159,7 +167,6 @@ pattern:	call 	#check_keypad
 			jz		p_c
 			cmp.b	#011h, R5				; if z=1 D was pressed
 			jz		p_d
-
 			jmp 	p_end
 
 p_a:		call	#pattern_a
@@ -195,6 +202,8 @@ check_keypad:
 			bis.b	#0000Fh, &P5OUT
 
 			mov.b	&P6IN, R4
+			cmp.b	#00h, R4				; if R4 is zero then skip the check
+			jz		ck_end
 
 			;-- P5.0-P5.3 as input with pull down
 			bic.b	#0000Fh, &P5DIR			; Set as input
@@ -206,16 +215,16 @@ check_keypad:
 			bis.b	#0000Fh, &P6OUT
 
 			;-- Combine P6.0-P6.3 and P5.0-P5.3 with P6.3 being MSB and P5.0 being LSB
-			setc
-			rlc.b	R4
-			setc
-			rlc.b	R4
-			setc
-			rlc.b	R4
-			setc
-			rlc.b	R4
 			mov.b	#0F0h, R10
 			or.b	&P5IN, R10
+			setc
+			rlc.b	R4
+			setc
+			rlc.b	R4
+			setc
+			rlc.b	R4
+			setc
+			rlc.b	R4
 			and.b	R10, R4
 
 ck_end:		ret
@@ -257,6 +266,7 @@ pattern_d:
 			ret
 
 
+
 update_r5:
 			cmp.b	#00h, R4
 			jz		update_r5_end	; if R4 is not 00h, then update R5 with the value of R4
@@ -264,10 +274,6 @@ update_r5:
 update_r5_end:
 			ret
 
-
-
-unlock_code:
-			ret
 
 
 ;-------------------------------------------------------------------------------
