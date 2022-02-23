@@ -10,10 +10,12 @@
 ; R6: Pattern B mask
 ; R7: Pattern C mask
 ; R8: Pattern D mask
-; R9: Timer Interrupt Keypad Compare [1h: 'A', 2h: 'B', 3h: 'C', 4h: 'D']
+; R9: Timer Interrupt Keypad Compare [1h: 'A', 2h: 'B', 3h: 'C', 4h: 'D-on', 5h: 'D-off']
 ; R10: Second Keypad input byte for check keypad
 ; R11: Passcode Flag
 ; R12: Passcode Count
+; R13: Pattern D counter
+; R14: Pattern D flag
 ;-------------------------------------------------------------------------------
             .cdecls C,LIST,"msp430.h"       ; Include device header file
             
@@ -74,6 +76,8 @@ init:
 			mov.w	#00h, R8
 			mov.w	#00h, R11
 			mov.w	#00h, R12
+			mov.w	#00h, R13
+			mov.w	#00h, R14
 
 			mov.b	#0FFh, entered_digit_1
 			mov.b	#0FFh, entered_digit_2
@@ -262,7 +266,20 @@ pattern_c:
 
 
 pattern_d:
+			cmp.b	#00h, R14				; if R14 is 0h then LED's are off
+			jz		p_d_off
+			jmp		p_d_on
+p_d_on:
+			mov.w	#32992d, &TB0CCR0
 			mov.b	#04h, R9
+			jmp		p_d_end
+p_d_off:
+			mov.w	#15625d, &TB0CCR0
+			mov.b	#05h, R9
+			jmp		p_d_end
+
+p_d_end:	mov.b	R8, &P3OUT
+			bis.w	#CCIE, &TB0CCTL0
 			ret
 
 
