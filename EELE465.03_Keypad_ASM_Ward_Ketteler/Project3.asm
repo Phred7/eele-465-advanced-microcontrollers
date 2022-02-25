@@ -55,12 +55,12 @@ init:
 			bis.w	#TBSSEL__SMCLK, &TB0CTL	; choose clock (f = 1 MHz)
 			bis.w	#MC__UP, &TB0CTL		; choose mode (UP)
 			bis.w	#CNTL_0, &TB0CTL		; choose counter length (N = 2^16)
-			bis.w	#ID__8, &TB0CTL			; choose divider for D1 (D1 = 4)
+			bis.w	#ID__8, &TB0CTL			; choose divider for D1 (D1 = 8)
 			bis.w 	#TBIDEX__8, &TB0EX0		; choose divider for D2 (D2 = 8)
 
 			;-- Setup TB0 Interrupt: Compare
 			mov.w	#32992d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
-			bis.w	#CCIE, &TB0CCTL0		; enable overflow interrupt
+			; bis.w	#CCIE, &TB0CCTL0		; enable overflow interrupt
 			bic.w	#CCIFG, &TB0CCTL0		; disable interrupt flag
 
 			nop
@@ -73,7 +73,7 @@ init:
 			mov.w	#00h, R5
 			mov.w	#00h, R6
 			mov.w	#01111111b, R7
-			mov.w	#00h, R8
+			mov.w	#18h, R8
 			mov.w	#00h, R11
 			mov.w	#00h, R12
 			mov.w	#00h, R13
@@ -127,16 +127,17 @@ end_digits:
 passcode_cmp:
 			;-- Compare each digit of the passcode with the digit entered
 			cmp.b	passcode_digit_1, entered_digit_1	; if z==0 then pd1==epd1
-			jnz		inc_count
+			jnz		end_passcode
 			cmp.b	passcode_digit_2, entered_digit_2	; if z==0 then pd2==epd2
-			jnz		inc_count
+			jnz		end_passcode
 			cmp.b	passcode_digit_3, entered_digit_3	; if z==0 then pd3==epd3
-			jnz		inc_count
+			jnz		end_passcode
 
 			;-- passcode is correct
 			mov.w	#001h, R11						; set passcode flag
 			mov.w	#00h, R5
 			mov.w	#00h, R4
+			bis.w	#CCIE, &TB0CCTL0		; enable overflow interrupt
 			jmp 	main
 
 
@@ -193,6 +194,9 @@ end_main:
 			nop
 
 
+;-------------------------------------------------------------------------------
+; Subroutines
+;-------------------------------------------------------------------------------
 
 check_keypad:
 
@@ -244,7 +248,7 @@ pattern_a:
 
 
 pattern_b:
-			mov.w	#1562d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
+			mov.w	#16425d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
 			mov.b	#02h, R9
 			bis.w	#CCIE, &TB0CCTL0
 			cmp.b	R4, R5					; if the last button press was B and this button press was B z=1 and restart the pattern
@@ -257,7 +261,7 @@ b_cmp_end:
 
 
 pattern_c:
-			mov.w	#3299d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
+			mov.w	#32850d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
 			mov.b	#03h, R9
 			bis.w	#CCIE, &TB0CCTL0
 			mov.b 	R7, &P3OUT
@@ -266,20 +270,46 @@ pattern_c:
 
 
 pattern_d:
-			cmp.b	#00h, R14				; if R14 is 0h then LED's are off
+			cmp.b	#05h, R9				; if R14 is 0h then LED's are off
 			jz		p_d_off
 			jmp		p_d_on
 p_d_on:
-			mov.w	#32992d, &TB0CCR0
 			mov.b	#04h, R9
-			jmp		p_d_end
-p_d_off:
-			mov.w	#15625d, &TB0CCR0
-			mov.b	#05h, R9
+			mov.w	#32850d, &TB0CCR0
+			cmp.b	#00h, R13
+			jz		pattern_d_0
+			cmp.b	#01h, R13
+			jz		pattern_d_1
+			cmp.b	#02h, R13
+			jz		pattern_d_2
+			cmp.b	#03h, R13
+			jz		pattern_d_3
+			cmp.b	#04h, R13
+			jz		pattern_d_2
+			cmp.b	#05h, R13
+			jz		pattern_d_1
+			jmp 	P_on_end
+pattern_d_0:
+			mov.b	#18h, R8
+			jmp 	P_on_end
+pattern_d_1:
+			mov.b	#24h, R8
+			jmp 	P_on_end
+pattern_d_2:
+			mov.b	#42h, R8
+			jmp 	P_on_end
+pattern_d_3:
+			mov.b	#81h, R8
+P_on_end:	mov.b	R8, &P3OUT
 			jmp		p_d_end
 
-p_d_end:	mov.b	R8, &P3OUT
-			bis.w	#CCIE, &TB0CCTL0
+p_d_off:
+			mov.b	#05h, R9
+			mov.w	#4107d, &TB0CCR0
+			mov.b	#00h, &P3OUT
+			jmp		p_d_end
+
+p_d_end:	bis.w	#CCIE, &TB0CCTL0
 			ret
 
 
@@ -303,21 +333,34 @@ TimerB0_ISR:
 				jz		update_pattern_b
 				cmp.b	#03h, R9	; if R9 is 03h then the current pattern is pattern C
 				jz		update_pattern_c
-				cmp.b	#04h, R9	; if R9 is 04h then the current pattern is pattern D
-				jz		update_pattern_d
+				cmp.b	#04h, R9	; if R9 is 04h then the current pattern is pattern D on
+				jz		update_pattern_d_on
+				cmp.b	#05h, R9	; if R9 is 04h then the current pattern is pattern D off
+				jz		update_pattern_d_off
 end_tb0_isr:	bic.w	#TBIFG, &TB0CTL
 				reti
 
 update_pattern_b:
 				inc.b	R6
 				jmp 	end_tb0_isr
+
 update_pattern_c:
 				rrc.b	R7
 				cmp.b	#0FFh, R7		; if R7 is 0FFh, reset to starting value
 				jnz		end_tb0_isr
 				mov.w	#01111111b, R7
 				jmp 	end_tb0_isr
-update_pattern_d:
+
+update_pattern_d_on:
+				mov.b	#05h, R9
+				jmp 	end_tb0_isr
+
+update_pattern_d_off:
+				mov.b	#04h, R9
+				inc.b	R13
+				cmp.b	#06h, R13
+				jnz		end_tb0_isr
+				mov.b	#00h, R13
 				jmp 	end_tb0_isr
 				nop
 
