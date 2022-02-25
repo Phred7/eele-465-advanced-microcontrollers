@@ -16,6 +16,7 @@
 ; R12: Passcode Count
 ; R13: Pattern D counter
 ; R14: Pattern D flag
+; R15: Pattern B flag
 ;-------------------------------------------------------------------------------
             .cdecls C,LIST,"msp430.h"       ; Include device header file
             
@@ -253,6 +254,7 @@ pattern_b:
 			bis.w	#CCIE, &TB0CCTL0
 			cmp.b	R4, R5					; if the last button press was B and this button press was B z=1 and restart the pattern
 			jnz		b_cmp_end
+			; cmp.b
 			mov.w	#00h, R6
 b_cmp_end:
 			mov.b	R6, &P3OUT
