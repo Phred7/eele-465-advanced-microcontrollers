@@ -252,12 +252,25 @@ pattern_b:
 			mov.w	#16425d, &TB0CCR0		; N = 15625: TB0 @ 0.5sec, N = 32992d for 1Hz
 			mov.b	#02h, R9
 			bis.w	#CCIE, &TB0CCTL0
-			cmp.b	R4, R5					; if the last button press was B and this button press was B z=1 and restart the pattern
+			cmp.b	#041h, R5				; Z==1 if R5 != B; reset B-flag to 0. Else jmp to b_reset
+			jz		b_reset
+			mov.b	#00h, R15				; logic to get here: R5 != B
+			jmp		b_cmp_end
+b_reset:	cmp.b	#041h, R4				; Z==1 if R4 == B
+			jnz		b_flag
+			;cmp.b	R4, R5					; Z==1 if R4 == B == R5
+			;jnz		b_flag
+			cmp.b	#01h, R15				; Z==1 if R15 (b-flag) == 1
+			jnz		b_flag
+			mov.w	#00h, R6				; logic to get here: R4 == R5 == B and R15 == 1
+			jmp		b_flag
+b_flag:		cmp.b	#00h, R4				; Z==1 if R4 == 0
 			jnz		b_cmp_end
-			; cmp.b
-			mov.w	#00h, R6
-b_cmp_end:
-			mov.b	R6, &P3OUT
+			cmp.b	#041h, R5				; Z==1 if R5 == B
+			jnz		b_cmp_end
+			mov.b	#01h, R15				; logic to get here: R4 == 0 and R5 == B
+			jmp		b_cmp_end
+b_cmp_end:  mov.b	R6, &P3OUT
 			ret
 
 
