@@ -64,7 +64,7 @@ flash_red:
 				call 	#delay
 				ret
 
-delay:			mov.w	global_outer_delay, R4
+delay:			mov.w	global_outer_delay, R4  ; sets outer loop delay
 delay_gid:		mov.w	global_inner_delay, R5	; sets inner loop delay
 dec_inner:		dec		R5						; decrements inner delay reg
 				jnz		dec_inner				; loop if R5 is not 0
