@@ -39,6 +39,12 @@ StopWDT     mov.w   #WDTPW|WDTHOLD,&WDTCTL  ; Stop watchdog timer
 ; Main loop here
 ;-------------------------------------------------------------------------------
 init:
+			;-- Setup on-board LEDs
+			bis.b	#BIT0, &P1DIR
+			bis.b	#BIT0, &P1OUT
+			bis.b	#BIT6, &P6DIR
+			bic.b	#BIT6, &P6OUT
+
 			;-- Setup LED bar as output on P3
 			bis.b	#0FFFFh, &P3DIR			; Set as output
 			bic.b	#0FFFFh, &P3OUT
@@ -96,7 +102,11 @@ main:
 
 
 passcode:
+			bis.b	#BIT0, &P1OUT
 			call	#check_keypad
+
+			cmp.b	#012h, R4			; if R4 == 12h (#) then reset passcode mem.
+			jz		reset_passcode
 
 			;-- if R5 == 0 && R4 != 0. This should prevent the same button press from being detected more than once
 			cmp.b	#00h, R5
@@ -135,22 +145,46 @@ passcode_cmp:
 			jnz		end_passcode
 
 			;-- passcode is correct
-			mov.w	#001h, R11						; set passcode flag
+			mov.w	#01h, R11						; set passcode flag
 			mov.w	#00h, R5
 			mov.w	#00h, R4
-			bis.w	#CCIE, &TB0CCTL0		; enable overflow interrupt
+			bis.w	#CCIE, &TB0CCTL0				; enable overflow interrupt
+			bic.b	#BIT0, &P1OUT					; Disable RED LED
 			jmp 	main
 
 
 inc_count:	inc.b	R12
 end_passcode:
+			bis.b	#BIT0, &P1OUT
+			bic.b	#BIT6, &P6OUT
 			mov.b	R4, R5
 			mov.w	#00h, R4
 			jmp 	main
 
 
 
-pattern:	call 	#check_keypad
+reset_passcode:
+			mov.b	#0FFh, entered_digit_1
+			mov.b	#0FFh, entered_digit_2
+			mov.b	#0FFh, entered_digit_3
+
+			mov.w	#00h, R12
+			mov.w	#00h, R11
+			mov.w	#00h, R5
+			mov.w	#00h, R4
+
+			mov.b	#00h, &P3OUT
+			bis.b	#BIT0, &P1OUT
+			bic.b	#BIT6, &P6OUT
+			jmp 	main
+
+
+
+pattern:	bis.b	#BIT6, &P6OUT			; enable GREEN LED to sig. correct pcode
+			call 	#check_keypad
+
+			cmp.b	#012h, R4			; if R4 == 12h (#) then reset passcode mem.
+			jz		reset_passcode
 
 			;-- Compare the current keypress with known values
 			cmp.b	#081h, R4				; if z=1 A was pressed
