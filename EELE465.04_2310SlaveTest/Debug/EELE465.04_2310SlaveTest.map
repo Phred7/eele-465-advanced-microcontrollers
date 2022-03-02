@@ -1,7 +1,7 @@
 ******************************************************************************
                   MSP430 Linker PC v20.2.5                     
 ******************************************************************************
->> Linked Mon Feb 28 21:32:55 2022
+>> Linked Wed Mar  2 09:34:00 2022
 
 OUTPUT FILE NAME:   <EELE465.04_2310SlaveTest.out>
 ENTRY POINT SYMBOL: "RESET"  address: 0000f800
@@ -105,14 +105,14 @@ section   page    origin      length       input sections
 .const     0    0000f800    00000000     UNINITIALIZED
 
 .text      0    0000f800    0000008c     
-                  0000f800    0000008c     main.obj (.text)
+                  0000f800    0000008c     Project4_Slave2310LEDBar.obj (.text)
 
 .text:_isr 
 *          0    0000f88c    00000008     
                   0000f88c    00000008     rts430x_sc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
 
 .data      0    00002000    00000004     
-                  00002000    00000004     main.obj (.data)
+                  00002000    00000004     Project4_Slave2310LEDBar.obj (.data)
 
 .stack     0    00002400    00000000     
 
@@ -163,7 +163,7 @@ SYSNMI     0    0000fffc    00000002
                   0000fffc    00000002     rts430x_sc_sd_eabi.lib : int58.asm.obj (.int58)
 
 .reset     0    0000fffe    00000002     
-                  0000fffe    00000002     main.obj (.reset)
+                  0000fffe    00000002     Project4_Slave2310LEDBar.obj (.reset)
 
 $fill000   0    0000ff80    00000004     
                   0000ff80    00000004     --HOLE-- [fill = ffff]
@@ -173,34 +173,34 @@ $fill001   0    0000ff84    00000004
 
 MODULE SUMMARY
 
-       Module             code   ro data   rw data
-       ------             ----   -------   -------
+       Module                         code   ro data   rw data
+       ------                         ----   -------   -------
     .\
-       main.obj           140    2         4      
-    +--+------------------+------+---------+---------+
-       Total:             140    2         4      
-                                                  
+       Project4_Slave2310LEDBar.obj   140    2         4      
+    +--+------------------------------+------+---------+---------+
+       Total:                         140    2         4      
+                                                              
     C:\ti\ccs1040\ccs\tools\compiler\ti-cgt-msp430_20.2.5.LTS\lib\rts430x_sc_sd_eabi.lib
-       isr_trap.asm.obj   8      0         0      
-       int45.asm.obj      0      2         0      
-       int46.asm.obj      0      2         0      
-       int47.asm.obj      0      2         0      
-       int48.asm.obj      0      2         0      
-       int49.asm.obj      0      2         0      
-       int50.asm.obj      0      2         0      
-       int51.asm.obj      0      2         0      
-       int52.asm.obj      0      2         0      
-       int53.asm.obj      0      2         0      
-       int54.asm.obj      0      2         0      
-       int55.asm.obj      0      2         0      
-       int56.asm.obj      0      2         0      
-       int57.asm.obj      0      2         0      
-       int58.asm.obj      0      2         0      
-    +--+------------------+------+---------+---------+
-       Total:             8      28        0      
-                                                  
-    +--+------------------+------+---------+---------+
-       Grand Total:       148    30        4      
+       isr_trap.asm.obj               8      0         0      
+       int45.asm.obj                  0      2         0      
+       int46.asm.obj                  0      2         0      
+       int47.asm.obj                  0      2         0      
+       int48.asm.obj                  0      2         0      
+       int49.asm.obj                  0      2         0      
+       int50.asm.obj                  0      2         0      
+       int51.asm.obj                  0      2         0      
+       int52.asm.obj                  0      2         0      
+       int53.asm.obj                  0      2         0      
+       int54.asm.obj                  0      2         0      
+       int55.asm.obj                  0      2         0      
+       int56.asm.obj                  0      2         0      
+       int57.asm.obj                  0      2         0      
+       int58.asm.obj                  0      2         0      
+    +--+------------------------------+------+---------+---------+
+       Total:                         8      28        0      
+                                                              
+    +--+------------------------------+------+---------+---------+
+       Grand Total:                   148    30        4      
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 

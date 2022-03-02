@@ -6,24 +6,24 @@ SHELL = cmd.exe
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CMD_SRCS += \
-../lnk_msp430fr2310.cmd 
+../lnk_msp430fr2355.cmd 
 
-ASM_SRCS += \
-../Project4_Slave2310LEDBar.asm 
+C_SRCS += \
+../master_keypad_main.c 
+
+C_DEPS += \
+./master_keypad_main.d 
 
 OBJS += \
-./Project4_Slave2310LEDBar.obj 
-
-ASM_DEPS += \
-./Project4_Slave2310LEDBar.d 
+./master_keypad_main.obj 
 
 OBJS__QUOTED += \
-"Project4_Slave2310LEDBar.obj" 
+"master_keypad_main.obj" 
 
-ASM_DEPS__QUOTED += \
-"Project4_Slave2310LEDBar.d" 
+C_DEPS__QUOTED += \
+"master_keypad_main.d" 
 
-ASM_SRCS__QUOTED += \
-"../Project4_Slave2310LEDBar.asm" 
+C_SRCS__QUOTED += \
+"../master_keypad_main.c" 
 
 

@@ -10,8 +10,8 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
-"./Project4_Slave2310LEDBar.obj" \
-"../lnk_msp430fr2310.cmd" \
+"./master_keypad_main.obj" \
+"../lnk_msp430fr2355.cmd" \
 $(GEN_CMDS__FLAG) \
 -llibc.a \
 
@@ -120,42 +120,42 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-EELE465.04_2310SlaveTest.out \
+ELLE465.04_Master_Keypad.out \
 
 EXE_OUTPUTS__QUOTED += \
-"EELE465.04_2310SlaveTest.out" \
+"ELLE465.04_Master_Keypad.out" \
 
 BIN_OUTPUTS += \
-EELE465.04_2310SlaveTest.hex \
+ELLE465.04_Master_Keypad.hex \
 
 BIN_OUTPUTS__QUOTED += \
-"EELE465.04_2310SlaveTest.hex" \
+"ELLE465.04_Master_Keypad.hex" \
 
 
 # All Target
 all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
-	@$(MAKE) --no-print-directory -Onone "EELE465.04_2310SlaveTest.out"
+	@$(MAKE) --no-print-directory -Onone "ELLE465.04_Master_Keypad.out"
 
 # Tool invocations
-EELE465.04_2310SlaveTest.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
+ELLE465.04_Master_Keypad.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: MSP430 Linker'
-	"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-msp430_20.2.5.LTS/bin/cl430" -vmspx --code_model=small --data_model=small -Ooff --use_hw_mpy=none --advice:power="all" --advice:hw_config=all --define=__MSP430FR2310__ -g --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number --silicon_errata=CPU21 --silicon_errata=CPU22 --silicon_errata=CPU40 -z -m"EELE465.04_2310SlaveTest.map" --heap_size=0 --stack_size=0 --cinit_hold_wdt=on -i"C:/ti/ccs1040/ccs/ccs_base/msp430/include" -i"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-msp430_20.2.5.LTS/lib" -i"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-msp430_20.2.5.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="EELE465.04_2310SlaveTest_linkInfo.xml" --entry_point=RESET --use_hw_mpy=none -o "EELE465.04_2310SlaveTest.out" $(ORDERED_OBJS)
+	"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-msp430_20.2.5.LTS/bin/cl430" -vmspx -Ooff --use_hw_mpy=F5 --advice:power="all" --advice:hw_config=all --define=__MSP430FR2355__ -g --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number --silicon_errata=CPU21 --silicon_errata=CPU22 --silicon_errata=CPU40 -z -m"ELLE465.04_Master_Keypad.map" --heap_size=160 --stack_size=160 --cinit_hold_wdt=on -i"C:/ti/ccs1040/ccs/ccs_base/msp430/include" -i"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-msp430_20.2.5.LTS/lib" -i"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-msp430_20.2.5.LTS/include" -i"C:/ti/ccs1040/ccs/ccs_base/msp430/lib/FR2xx" --priority --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="ELLE465.04_Master_Keypad_linkInfo.xml" --use_hw_mpy=F5 --rom_model -o "ELLE465.04_Master_Keypad.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
-EELE465.04_2310SlaveTest.hex: $(EXE_OUTPUTS)
+ELLE465.04_Master_Keypad.hex: $(EXE_OUTPUTS)
 	@echo 'Building secondary target: "$@"'
 	@echo 'Invoking: MSP430 Hex Utility'
-	"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-msp430_20.2.5.LTS/bin/hex430" --memwidth=8 --romwidth=8 --diag_wrap=off -o "EELE465.04_2310SlaveTest.hex" $(EXE_OUTPUTS__QUOTED)
+	"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-msp430_20.2.5.LTS/bin/hex430" --memwidth=8 --romwidth=8 --diag_wrap=off -o "ELLE465.04_Master_Keypad.hex" $(EXE_OUTPUTS__QUOTED)
 	@echo 'Finished building secondary target: "$@"'
 	@echo ' '
 
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "Project4_Slave2310LEDBar.obj" 
-	-$(RM) "Project4_Slave2310LEDBar.d" 
+	-$(RM) "master_keypad_main.obj" 
+	-$(RM) "master_keypad_main.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
