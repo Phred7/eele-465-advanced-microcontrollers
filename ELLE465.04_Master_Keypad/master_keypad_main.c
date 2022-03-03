@@ -98,8 +98,13 @@ int main(void){
     UCB1IE |= UCTXIE0;          // Enable I2C Tx0 IRQ
     __enable_interrupt();       // Enable Mask-able IRQs
 
+    unsigned int P3 = 0;
     while(1) {
-        unsigned int value = checkKeypad();
+        P3DIR &= ~0x0FF;        // make MSNibble an input
+        P3REN |= 0x0FF;         // enable resistor
+        P3OUT &= ~0x0FF;        // make a pull down resistor
+        P3 = P3IN;
+        //unsigned int value = checkKeypad();
     }
 
     int i;
