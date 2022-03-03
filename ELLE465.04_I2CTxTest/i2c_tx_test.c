@@ -14,58 +14,16 @@ int delay(int delay){
     return 0;
 }
 
-int passcode() {
-    unsigned int passcodeFirstDigit = 0x028;  // 7
-    unsigned int passcodeSecondDigit = 0x084;  // 2
-    unsigned int passcodeThirdDigit = 0x022;  // 9
-    return 0;
-}
 
-int checkKeypad() {
-    int columnValue = 0;
-    int rowValue = 0;
-    int keypadValue = 0;
-    // set rows high
-    P3DIR &= ~0x0F0;        // make MSNibble an input
-    P3REN |= 0x0F0;         // enable resistor
-    P3OUT &= ~0x0F0;        // make a pull down resistor
-
-    P3DIR |= 0x00F;         // make LSNibble an output
-    P3OUT = P3OUT | 0x0F;         // set LSN high
-
-    columnValue = P3IN;
-    columnValue &= 0x0F0;
-
-    if (columnValue == 0) {
-      return 0;
-    }
-
-    // set columns high
-    P3DIR &= ~0x0F;        // make LSNibble an input
-    P3REN |= 0x0F;         // enable resistor
-    P3OUT &= ~0x0F;        // make a pull down resistor
-
-    P3DIR |= 0x0F0;         // make MSNibble an output
-    P3OUT |= 0x0F0;         // set MSN high
-
-    rowValue = P3IN;
-
-    columnValue = columnValue << 4;
-
-    keypadValue = columnValue | rowValue;
-
-    // poll
-    return keypadValue;
-}
-
-
+//-- Config Ports
+//    P1SEL1 &= ~BIT1;            // P1.1 = SCL
+//    P1SEL0 |= BIT1;
+//
+//    P1SEL1 &= ~BIT2;            // P1.2 = SDA
+//    P1SEL0 |= BIT2;
 int main(void){
 
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
-
-    //-- Config Ports
-    P3SEL1 &= ~0x0FF;
-    P3SEL0 |= 0x0FF;
 
     PM5CTL0 &= ~LOCKLPM5;       // disable LPM
 
@@ -81,8 +39,9 @@ int main(void){
     UCB1CTLW0 |= UCTR;           // Put into Tx mode
     UCB1I2CSA = 0x0068;         // secondary 0x68
 
-    UCB1TBCNT = sizeof(packet); // # of Bytes in Packet
+    UCB1TBCNT = sizeof(packet) - 1; // # of Bytes in Packet
     UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
+
 
     //-- Config Ports
     P4SEL1 &= ~BIT7;            // P4.7 = SCL
@@ -96,15 +55,11 @@ int main(void){
 
     //-- Enable Interrupts
     UCB1IE |= UCTXIE0;          // Enable I2C Tx0 IRQ
-    __enable_interrupt();       // Enable Mask-able IRQs
-
-    while(1) {
-        unsigned int value = checkKeypad();
-    }
+    __enable_interrupt();       // Enable Maskable IRQs
 
     int i;
     while(1) {
-        UCB1CTLW0 |= UCTXSTT;   // Generate START condition
+        UCB1CTLW0 |= UCTXSTT;   // Genearte START condition
         UCB1IFG |= UCTXIFG0;
         for(i=0; i<100; i=i+1){} //delay loop
     }
