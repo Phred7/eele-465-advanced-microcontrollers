@@ -37,7 +37,7 @@ int main(void){
     UCB1CTLW0 |= UCMODE_3;      // put into I2C mode
     UCB1CTLW0 |= UCMST;         // put into master mode
     UCB1CTLW0 |= UCTR;           // Put into Tx mode
-    UCB1I2CSA = 0x0068;         // secondary 0x68
+    UCB1I2CSA = 0x0012;         // secondary 0x68
 
     UCB1TBCNT = sizeof(packet) - 1; // # of Bytes in Packet
     UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
