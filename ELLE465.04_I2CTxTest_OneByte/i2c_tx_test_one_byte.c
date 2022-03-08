@@ -16,8 +16,8 @@ int main(void) {
     UCB1CTLW0 |= UCTR;
     UCB1I2CSA = 0x0012;
 
-    UCB1TBCNT = 1; // # of Bytes in Packet
     UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
+    UCB1TBCNT = 2; // # of Bytes in Packet
 
 //    P1SEL1 &= ~BIT3;    // SCL
 //    P1SEL0 |= BIT3;
@@ -32,8 +32,6 @@ int main(void) {
     P4SEL1 &= ~BIT6;            // P4.6 = SDA
     P4SEL0 |= BIT6;
 
-    PM5CTL0 &= ~LOCKLPM5;
-
     UCB1CTLW0 &= ~UCSWRST;
 
     UCB1IE |= UCTXIE0;
@@ -43,8 +41,12 @@ int main(void) {
     int i;
     while(1) {
         UCB1CTLW0 |= UCTXSTT;
-        UCB1IFG |= UCTXIFG0;
+        while (UCB0CTLW0 & UCTXSTP);
+//        UCB1IFG |= UCTXIFG0;
         for(i=0; i<100; i=i+1) {}
+
+        //UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
     }
     return 0;
 }
@@ -52,5 +54,6 @@ int main(void) {
 #pragma vector=EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
     UCB1TXBUF = 0xBB;
+    UCB1CTL1 |= UCTXSTP;
     UCB1IFG &= ~UCTXIFG0;
 }

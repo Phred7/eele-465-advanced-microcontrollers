@@ -30,7 +30,7 @@ int main(void) {
 
 
 	UCB0IE |= UCRXIE0;
-	UCB0IE |= UCTXIE0;
+//	UCB0IE |= UCTXIE0;
 	__enable_interrupt();
 
 	P1DIR |= BIT0;        // P1.0
@@ -53,7 +53,7 @@ int main(void) {
 #pragma vector = EUSCI_B0_VECTOR
 __interrupt void EUSCI_B0_I2C_ISR(void) {
     UCB0IE &= ~UCRXIE0;
-    UCB0IE &= ~UCTXIE0;
+//    UCB0IE &= ~UCTXIE0;
     recievedData = UCB0RXBUF;
     P1OUT &= ~BIT0;
     return;
