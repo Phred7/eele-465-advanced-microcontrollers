@@ -1,5 +1,7 @@
 #include <msp430.h>
 
+int dataSent = 0;
+
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;
 
@@ -41,7 +43,7 @@ int main(void) {
     int i;
     while(1) {
         UCB1CTLW0 |= UCTXSTT;
-        while (UCB0CTLW0 & UCTXSTP);
+        while (UCB0CTLW0 & UCTXSTP) {}
 //        UCB1IFG |= UCTXIFG0;
         for(i=0; i<100; i=i+1) {}
 
@@ -53,7 +55,15 @@ int main(void) {
 
 #pragma vector=EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
-    UCB1TXBUF = 0xBB;
-    UCB1CTL1 |= UCTXSTP;
-    UCB1IFG &= ~UCTXIFG0;
+    if (dataSent == 1) {
+        dataSent = 0;
+        UCB1IFG &= ~UCTXIFG0;
+        UCB1CTL1 |= UCTXSTP;
+    } else {
+        UCB1TXBUF = 0xBB;
+        dataSent = 1;
+        UCB1IFG &= ~UCTXIFG0;
+    }
+    return;
+
 }

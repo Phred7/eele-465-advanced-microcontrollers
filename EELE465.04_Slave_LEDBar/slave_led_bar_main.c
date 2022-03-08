@@ -59,7 +59,7 @@ int main(void) {
 
     int i;
     while(1) {
-        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+        //UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
     }
 
     return 0;
@@ -83,3 +83,4 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
 //    }
 }
 //-- END EUSCI_B0_I2C_ISR
+
