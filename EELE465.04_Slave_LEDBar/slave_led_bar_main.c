@@ -31,7 +31,7 @@ int main(void) {
     UCB1CTLW0 &= ~UCMST;
     UCB1I2COA0 = 0x12 | UCOAEN;               // Slave address is 0x77; enable it
     UCB1CTLW0 &= ~UCTR;     // set to receive
-//    UCB1CTLW1 &= ~UCSWACK;  // auto ACK
+    UCB1CTLW1 &= ~UCSWACK;  // auto ACK
 
 //  UCB0CTLW0 |= UCMODE_3 + UCSYNC;  // Choose I2C mode
 //  UCB0CTLW0 &= ~UCMST;    // Choose to be slave
@@ -49,7 +49,7 @@ int main(void) {
 //  P1SEL0 |= BIT2;
 //
 //  UCB0CTLW1 &= ~UCTXIFG0;
-//  UCB0CTLW1 &= ~UCRXIFG0;
+    UCB1CTLW1 &= ~UCRXIFG0;
 
     UCB1IE |= UCRXIE0;
     UCB1IE |= UCTXIE0;
@@ -68,11 +68,12 @@ int main(void) {
 //-- Service I2C
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
-    UCB1IE &= ~UCRXIE0;
-    UCB1IE &= ~UCTXIE0;
     recievedData = UCB1RXBUF;
-    UCTXACK_0;
+//    UCTXACK_0;
     P1OUT &= ~BIT0;
+//    UCB1IE &= ~UCRXIE0;
+//    UCB1IE &= ~UCTXIE0;
+    UCB1CTLW1 &= ~UCRXIFG0;
     return;
 //    switch(UCB0IV){
 //        case 0x68:                  // Id x68 rxifg0
