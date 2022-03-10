@@ -16,7 +16,7 @@ int main(void) {
     UCB1CTLW0 |= UCMODE_3;
     UCB1CTLW0 |= UCMST;
     UCB1CTLW0 |= UCTR;
-    UCB1I2CSA = 0x0012;
+    UCB1I2CSA = 0x0042;
 
     UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
     UCB1TBCNT = 2; // # of Bytes in Packet
@@ -57,10 +57,19 @@ int main(void) {
 __interrupt void EUSCI_B1_I2C_ISR(void){
     if (dataSent == 1) {
         dataSent = 0;
+        if (UCB1I2CSA == 0x0042) {
+            UCB1I2CSA = 0x0069;
+        } else {
+            UCB1I2CSA = 0x0042;
+        }
         UCB1IFG &= ~UCTXIFG0;
         UCB1CTL1 |= UCTXSTP;
     } else {
-        UCB1TXBUF = 0xBB;
+        if (UCB1I2CSA == 0x0042) {
+            UCB1TXBUF = 0x0BB;
+        } else {
+            UCB1TXBUF = 0x0AA;
+        }
         dataSent = 1;
         UCB1IFG &= ~UCTXIFG0;
     }
