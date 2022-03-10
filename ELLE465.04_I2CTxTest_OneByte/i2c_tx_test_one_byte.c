@@ -2,6 +2,25 @@
 
 int dataSent = 0;
 
+int send_i2c(void) {
+    int i;
+    UCB1CTLW0 |= UCTXSTT;
+    while (UCB0CTLW0 & UCTXSTP);
+    for(i=0; i<15; i=i+1){}
+    UCB1CTLW0 |= UCTXSTT;
+    while (UCB0CTLW0 & UCTXSTP);
+    for(i=0; i<15; i=i+1){}
+    return 0;
+}
+
+int send_led_reset(void) {
+    // *
+}
+
+int send_lcd_reset(void) {
+    // #
+}
+
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;
 
@@ -34,13 +53,16 @@ int main(void) {
 
     __enable_interrupt();
 
-    int i;
+//    while(1) {
+//        UCB1CTLW0 |= UCTXSTT;
+//        while (UCB0CTLW0 & UCTXSTP) {}
+//        for(i=0; i<100; i=i+1) {}
+//    }
     while(1) {
-        UCB1CTLW0 |= UCTXSTT;
-        while (UCB0CTLW0 & UCTXSTP) {}
-        for(i=0; i<100; i=i+1) {}
+        send_i2c();
     }
     return 0;
+
 }
 
 #pragma vector=EUSCI_B1_VECTOR
