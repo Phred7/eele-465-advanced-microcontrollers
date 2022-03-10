@@ -21,12 +21,6 @@ int main(void) {
     UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
     UCB1TBCNT = 2; // # of Bytes in Packet
 
-//    P1SEL1 &= ~BIT3;    // SCL
-//    P1SEL0 |= BIT3;
-//
-//    P1SEL1 &= ~BIT2;
-//    P1SEL0 |= BIT2;
-
     //-- Config Ports
     P4SEL1 &= ~BIT7;            // P4.7 = SCL
     P4SEL0 |= BIT7;
@@ -44,11 +38,7 @@ int main(void) {
     while(1) {
         UCB1CTLW0 |= UCTXSTT;
         while (UCB0CTLW0 & UCTXSTP) {}
-//        UCB1IFG |= UCTXIFG0;
         for(i=0; i<100; i=i+1) {}
-
-        //UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
-
     }
     return 0;
 }
