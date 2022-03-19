@@ -94,10 +94,27 @@ int main(void) {
     int i;
     while(1) {
         if (passcodeEnteredCorrectly == 1) {
+
             if (recievedData != 0x00) {
                 patternData = recievedData;
                 recievedData = 0x00;
             }
+
+            if (patternData != 0x00){
+                if (patternData == 0x081) {
+                    currentPattern = 0;
+                }
+                else if (patternData == 0x041) {
+                    currentPattern = 1;
+                }
+                else if (patternData == 0x021) {
+                    currentPattern = 2;
+                }
+                else if (patternData == 0x011) {
+                    currentPattern = 3;
+                }
+            }
+
             switch (currentPattern) {
             case 0: // A
                 disableTimerInterrupt();
@@ -155,6 +172,7 @@ __interrupt void ISR_TB0_CCR0(void) {
     case 0:
         break;
     case 1:
+        patternBMask += 0x01;
         break;
     case 2:
         break;

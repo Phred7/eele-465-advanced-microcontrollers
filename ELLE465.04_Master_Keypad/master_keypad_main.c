@@ -182,12 +182,16 @@ int main(void){
 //        P3 = P3IN;
 //        //unsigned int value = checkKeypad();
 //    }
-
-    while(1) {
-        unsigned int keypadValue = checkKeypad();
-        send_i2c(keypadValue);
-        delay(10000);
-    }
+    unsigned int keypadValue = checkKeypad();
+    keypadValue = 0x041;
+    send_i2c(keypadValue);
+    delay(10000);
+//    while(1) {
+//        unsigned int keypadValue = checkKeypad();
+//        keypadValue = 0x041;
+//        send_i2c(keypadValue);
+//        delay(10000);
+//    }
     return 0;
 }
 //-- END main
