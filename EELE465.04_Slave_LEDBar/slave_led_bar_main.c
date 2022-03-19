@@ -77,7 +77,7 @@ int main(void) {
         if (passcodeEnteredCorrectly == 1) {
             switch (currentPattern) {
             case 0: // A
-                P3OUT &= 0x0AA;
+                P3OUT |= 0x0AA;
                 break;
             case 1: // B
 
