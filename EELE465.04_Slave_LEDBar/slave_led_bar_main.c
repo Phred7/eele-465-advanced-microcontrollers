@@ -47,7 +47,7 @@ void configTimer(void){
     TB0CTL |= MC__UP;               // Mode = UP
     TB0CTL |= CNTL_0;               // Length = 16-bit
     TB0CTL |= ID__8;                // ste d1 to 8
-    TB0EX0 |= TBIDEX__=8;            // set d2 to 8
+    TB0EX0 |= TBIDEX__8;            // set d2 to 8
     TB0CCR0 = 16000;
     return;
 }
