@@ -47,8 +47,8 @@ void configTimer(void){
     TB0CTL |= MC__UP;               // Mode = UP
     TB0CTL |= CNTL_0;               // Length = 16-bit
     TB0CTL |= ID__8;                // ste d1 to 8
-    TB0EX0 |= TBIDEX__7;            // set d2 to 7
-    TB0CCR0 = 9366;                 // CCR0 = (1 s) w/ d2 = 7 1sec: 18732, .5sec = 9366 From pg 297 or TB
+    TB0EX0 |= TBIDEX__=8;            // set d2 to 8
+    TB0CCR0 = 16000;
     return;
 }
 
@@ -64,7 +64,8 @@ void enableTimerInterrupt(int timerCompareValue){
 
 
 void disableTimerInterrupt() {
-    TB0CCTL0 &= ~CCIE;
+    TB0CCTL0 &= ~CCIE;              // Disable TB0 CCR0 overflow IRQ
+    TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
     return;
 }
 
@@ -85,6 +86,8 @@ int main(void) {
     P3OUT &= ~0x0FF;
 
     configI2C();
+
+    configTimer();
 
     __enable_interrupt();
 
