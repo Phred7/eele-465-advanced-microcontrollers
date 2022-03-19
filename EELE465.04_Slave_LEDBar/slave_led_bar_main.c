@@ -121,7 +121,7 @@ int main(void) {
             switch (currentPattern) {
             case 0: // A
                 disableTimerInterrupt();
-                P3OUT |= 0x0AA;
+                P3OUT = 0x0AA;
                 break;
             case 1: // B
                 enableTimerInterrupt(16425);
@@ -135,7 +135,7 @@ int main(void) {
                         patternBFlag = 1;
                     }
                 }
-                P3OUT |= patternBMask;
+                P3OUT = patternBMask;
                 break;
             case 2: // C
                 break;
