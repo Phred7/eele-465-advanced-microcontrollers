@@ -1,7 +1,10 @@
 #include <msp430.h> 
 
 
-char recievedData = 0x00;
+unsigned int recievedData = 0x00;
+unsigned int patternData = 0x00;
+unsigned int lastPatternData = 0x00;
+int patternBFlag = 0;
 int currentPattern = 0;
 int passcodeEnteredCorrectly = 0;
 unsigned int patternBMask = 0x00;
@@ -50,6 +53,22 @@ void configTimer(void){
 }
 
 
+void enableTimerInterrupt(int timerCompareValue){
+    // IRQs
+    // Timer Compare IRQ
+    TB0CCR0 = timerCompareValue;
+    TB0CCTL0 |= CCIE;               // Enable TB0 CCR0 overflow IRQ
+    TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
+    return;
+}
+
+
+void disableTimerInterrupt() {
+    TB0CCTL0 &= ~CCIE;
+    return;
+}
+
+
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
@@ -75,18 +94,40 @@ int main(void) {
     int i;
     while(1) {
         if (passcodeEnteredCorrectly == 1) {
+            if (recievedData != 0x00) {
+                patternData = recievedData;
+                recievedData = 0x00;
+            }
             switch (currentPattern) {
             case 0: // A
+                disableTimerInterrupt();
                 P3OUT |= 0x0AA;
                 break;
             case 1: // B
-
+                enableTimerInterrupt(16425);
+                if (lastPatternData != 0x041) {
+                    patternBFlag = 0;
+                } else {
+                    if (patternData == 0x041 && patternBFlag == 1) {
+                        patternBMask = 0x00;
+                    }
+                    if (patternData == 0x00) {
+                        patternBFlag = 1;
+                    }
+                }
+                P3OUT |= patternBMask;
                 break;
             case 2: // C
                 break;
             case 3: // D
                 break;
             }
+
+            if (patternData != 0x00) {
+                lastPatternData = patternData;
+            }
+            patternData = 0x00;
+
         } else {
             passcodeEnteredCorrectly = 1;
         }
