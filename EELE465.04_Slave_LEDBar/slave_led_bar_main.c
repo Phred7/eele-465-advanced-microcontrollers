@@ -53,7 +53,7 @@ void configTimer(void){
 }
 
 
-void enableTimerInterrupt(int timerCompareValue){
+void enableTimerInterrupt(unsigned int timerCompareValue){
     // IRQs
     // Timer Compare IRQ
     TB0CCR0 = timerCompareValue;
@@ -94,7 +94,7 @@ int main(void) {
     P1OUT |= BIT0;
     P1OUT |= BIT1;
 
-    int i;
+
     while(1) {
         if (passcodeEnteredCorrectly == 1) {
 
@@ -180,7 +180,7 @@ __interrupt void ISR_TB0_CCR0(void) {
         patternBMask += 0x01;
         break;
     case 2:
-        patternCMask>>1;
+        patternCMask = patternCMask>>1;
         if (patternCMask == 0x0FF) {
             patternCMask = 0x07F;
         }
