@@ -207,9 +207,9 @@ __interrupt void ISR_TB0_CCR0(void) {
         if (patternDOn == 0) {
             patternDOn = 1;
 
-            if (patternDMask == 0x080){
+            if (patternDMask == 0x08){
                 patternDDirection = 0;
-            } else if (patternDMask == 0x010){
+            } else if (patternDMask == 0x01){
                 patternDDirection = 1;
             }
 
