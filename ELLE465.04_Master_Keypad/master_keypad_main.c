@@ -190,7 +190,7 @@ int main(void){
 //        //unsigned int value = checkKeypad();
 //    }
     unsigned int keypadValue = checkKeypad();
-    keypadValue = 0x021;
+    keypadValue = 0x011;
     send_i2c(keypadValue);
     delay(10000);
 //    while(1) {

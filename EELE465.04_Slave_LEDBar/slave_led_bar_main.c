@@ -158,7 +158,7 @@ int main(void) {
             case 3: // D
                 if (patternDOn == 0) {
                     enableTimerInterrupt(32850);
-                    P3OUT = (patternDMask << 4) + reverseFourBitInt(patternDMask);
+                    P3OUT = (reverseFourBitInt(patternDMask) << 4) + patternDMask;
                 } else {
                     enableTimerInterrupt(4107);
                     P3OUT = 0x00;
