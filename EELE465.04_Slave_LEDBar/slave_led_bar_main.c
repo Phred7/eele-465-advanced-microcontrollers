@@ -180,7 +180,7 @@ __interrupt void ISR_TB0_CCR0(void) {
         patternBMask += 0x01;
         break;
     case 2:
-        patternCMask = patternCMask>>1;
+        patternCMask = (patternCMask >> 1)|(patternCMask << (8 - 1));
         if (patternCMask == 0x0FF) {
             patternCMask = 0x07F;
         }
