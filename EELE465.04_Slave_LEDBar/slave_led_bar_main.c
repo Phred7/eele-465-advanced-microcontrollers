@@ -5,11 +5,13 @@ unsigned int recievedData = 0x00;
 unsigned int patternData = 0x00;
 unsigned int lastPatternData = 0x00;
 int patternBFlag = 0;
+int patternDOn = 0;
+int patternDDirection = 0;
 int currentPattern = 0;
 int passcodeEnteredCorrectly = 0;
 unsigned int patternBMask = 0x00;
 unsigned int patternCMask = 0x07F;
-unsigned int patternDMask = 0x018;
+unsigned int patternDMask = 0x010;
 
 
 void configI2C(void) {
@@ -67,6 +69,18 @@ void disableTimerInterrupt() {
     TB0CCTL0 &= ~CCIE;              // Disable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
     return;
+}
+
+/*
+ * Adapted from StackOverflow's 'Mike DeSimone'
+ * https://stackoverflow.com/questions/4245936/mirror-bits-of-a-32-bit-word
+ */
+unsigned int reverseFourBitInt(unsigned int fourBitInt) {
+    unsigned int x = fourBitInt;
+    x = ((x & 0x55555555) << 1) | ((x & 0xAAAAAAAA) >> 1); // Swap _<>_
+    x = ((x & 0x33333333) << 2) | ((x & 0xCCCCCCCC) >> 2); // Swap __<>__
+    x = ((x & 0x0F0F0F0F) << 4) | ((x & 0xF0F0F0F0) >> 4); // Swap ____<>____
+    return x >> 4;
 }
 
 
@@ -142,6 +156,13 @@ int main(void) {
                 P3OUT = patternCMask;
                 break;
             case 3: // D
+                if (patternDOn == 0) {
+                    enableTimerInterrupt(32850);
+                    P3OUT = (patternDMask << 4) + reverseFourBitInt(patternDMask);
+                } else {
+                    enableTimerInterrupt(4107);
+                    P3OUT = 0x00;
+                }
                 break;
             }
 
@@ -183,6 +204,24 @@ __interrupt void ISR_TB0_CCR0(void) {
         patternCMask = (patternCMask >> 1) | (patternCMask << 7);   // Addapted from GeeksForGeeks
         break;
     case 3:
+        if (patternDOn == 0) {
+            patternDOn = 1;
+
+            if (patternDMask == 0x080){
+                patternDDirection = 0;
+            } else if (patternDMask == 0x010){
+                patternDDirection = 1;
+            }
+
+            if (patternDDirection == 0){
+                patternDMask >>= 1;
+            } else {
+                patternDMask <<= 1;
+            }
+
+        } else {
+            patternDOn = 0;
+        }
         break;
     }
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
