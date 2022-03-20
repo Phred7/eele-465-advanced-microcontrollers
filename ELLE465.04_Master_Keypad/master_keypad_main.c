@@ -59,6 +59,13 @@ void enableTimerInterrupt(int timerCompareValue){
 }
 
 
+void disableTimerInterrupt() {
+    TB0CCTL0 &= ~CCIE;              // Disable TB0 CCR0 overflow IRQ
+    TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
+    return;
+}
+
+
 void configKeypad(void){
     return;
 }
@@ -183,7 +190,7 @@ int main(void){
 //        //unsigned int value = checkKeypad();
 //    }
     unsigned int keypadValue = checkKeypad();
-    keypadValue = 0x041;
+    keypadValue = 0x021;
     send_i2c(keypadValue);
     delay(10000);
 //    while(1) {
