@@ -164,6 +164,7 @@ int main(void) {
 #pragma vector = EUSCI_B0_VECTOR
 __interrupt void EUSCI_B0_I2C_ISR(void) {
     recievedData = UCB0RXBUF;
+    P1OUT ^= BIT0;
     UCB0CTLW1 &= ~UCRXIFG0;
     return;
 }
@@ -172,7 +173,6 @@ __interrupt void EUSCI_B0_I2C_ISR(void) {
 //-- Service TB0
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void ISR_TB0_CCR0(void) {
-    P1OUT ^= BIT0;
     switch (currentPattern) {
     case 0:
         break;
@@ -180,10 +180,7 @@ __interrupt void ISR_TB0_CCR0(void) {
         patternBMask += 0x01;
         break;
     case 2:
-        patternCMask = (patternCMask >> 1)|(patternCMask << (8 - 1));
-        if (patternCMask == 0x0FF) {
-            patternCMask = 0x07F;
-        }
+        patternCMask = (patternCMask >> 1) | (patternCMask << 7);   // Addapted from GeeksForGeeks
         break;
     case 3:
         break;
