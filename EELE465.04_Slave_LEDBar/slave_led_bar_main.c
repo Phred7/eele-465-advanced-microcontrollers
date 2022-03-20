@@ -11,7 +11,7 @@ int currentPattern = 0;
 int passcodeEnteredCorrectly = 0;
 unsigned int patternBMask = 0x00;
 unsigned int patternCMask = 0x07F;
-unsigned int patternDMask = 0x010;
+unsigned int patternDMask = 0x08;
 
 
 void configI2C(void) {
