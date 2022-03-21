@@ -67,6 +67,10 @@ void disableTimerInterrupt() {
 
 
 void configKeypad(void){
+    //-- Setup Ports for Keypad
+    P3DIR &= ~0b11111111;   // Clear P3.0-3.7 for input
+    P3OUT &= ~0b11111111;   // Clear input initially
+    P3REN |= 0xFF;          // Enable pull-up/pull-down resistors on port 3
     return;
 }
 
@@ -86,12 +90,12 @@ int send_i2c(unsigned int dataToSend) {
     UCB1I2CSA = 0x0042;
     UCB1CTLW0 |= UCTXSTT;
     while (UCB0CTLW0 & UCTXSTP);
-    delay(15);
+    delay(5);
 
-//    UCB1I2CSA = 0x0069;
-//    UCB1CTLW0 |= UCTXSTT;
-//    while (UCB0CTLW0 & UCTXSTP);
-//    delay(15);
+    UCB1I2CSA = 0x0069;
+    UCB1CTLW0 |= UCTXSTT;
+    while (UCB0CTLW0 & UCTXSTP);
+    delay(5);
 
     dataToSendI2C = 0x00;
     return 0;
@@ -124,41 +128,27 @@ int passcode() {
 
 
 unsigned int checkKeypad() {
-    int columnValue = 0;
-    int rowValue = 0;
-    int keypadValue = 0;
+    int buttonValue = 0b0;
 
-    // set rows high
-    P3DIR &= ~0x0F0;        // make MSNibble an input
-    P3REN |= 0x0F0;         // enable resistor
-    P3OUT &= ~0x0F0;        // make a pull down resistor
+    P3DIR &= ~0b11110000;   // Set rows as inputs
+    P3OUT &= ~0b11110000;   // Set pull-down resistors for rows
+    P3DIR |=  0b00001111;   // Set columns as outputs
+    P3OUT |=  0b00001111;   // Set columns high
 
-    P3DIR |= 0x00F;         // make LSNibble an output
-    P3OUT = P3OUT | 0x0F;         // set LSN high
+    buttonValue = P3IN;     // Move input to variable
 
-    columnValue = P3IN;
-    columnValue &= 0x0F0;
-
-    if (columnValue == 0) {
-      return 0;
+    if (buttonValue == 0b0) {
+        return 0x00;
     }
 
-    // set columns high
-    P3DIR &= ~0x0F;        // make LSNibble an input
-    P3REN |= 0x0F;         // enable resistor
-    P3OUT &= ~0x0F;        // make a pull down resistor
+    P3DIR &= ~0b00001111;   // Set columns as input
+    P3OUT &= ~0b00001111;   // Set pull-down resistors for rows
+    P3DIR |=  0b11110000;   // Set rows as outputs
+    P3OUT |=  0b11110000;   // Set rows high
 
-    P3DIR |= 0x0F0;         // make MSNibble an output
-    P3OUT |= 0x0F0;         // set MSN high
+    buttonValue = buttonValue & P3IN;   // Add both nibbles together
 
-    rowValue = P3IN;
-
-    columnValue = columnValue << 4;
-
-    keypadValue = columnValue | rowValue;
-
-    // return keypadValue;
-    return 0xAB;
+    return buttonValue;
 }
 
 
@@ -189,16 +179,18 @@ int main(void){
 //        P3 = P3IN;
 //        //unsigned int value = checkKeypad();
 //    }
-    unsigned int keypadValue = checkKeypad();
-    keypadValue = 0x011;
-    send_i2c(keypadValue);
-    delay(10000);
-//    while(1) {
-//        unsigned int keypadValue = checkKeypad();
+//    unsigned int keypadValue = checkKeypad();
+//    keypadValue = 0x011;
+//    send_i2c(keypadValue);
+//    delay(10000);
+    while(1) {
+        unsigned int keypadValue = checkKeypad();
+        if (keypadValue != 0x00) {
+            send_i2c(keypadValue);
+        }
 //        keypadValue = 0x041;
-//        send_i2c(keypadValue);
-//        delay(10000);
-//    }
+
+    }
     return 0;
 }
 //-- END main
