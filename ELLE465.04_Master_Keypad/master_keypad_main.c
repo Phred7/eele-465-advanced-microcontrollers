@@ -6,10 +6,19 @@
  */
 
 int dataSent = 0;
-int ledSlaveEnabled = 0;
+int ledSlaveEnabled = 0;    // in this case 0 represents false
 unsigned int dataToSendI2C = 0x00;
 int timerCompareHalfSecond = 9366;
 
+int passcodeEnteredCorrectly = 0; // in this case 0 represents false
+int passcodeCounter = 0;
+unsigned int lastPasscodeEntry = 0x00;
+unsigned int passcodeFirstDigit = 0x028;  // 7
+unsigned int passcodeSecondDigit = 0x084;  // 2
+unsigned int passcodeThirdDigit = 0x022;  // 9
+unsigned int passcodeFirstEntry = 0x00;
+unsigned int passcodeSecondEntry = 0x00;
+unsigned int passcodeThirdEntry = 0x00;
 
 void configI2C(void) {
     //-- Config. I2C Master
@@ -85,36 +94,38 @@ int delay(int delay){
 
 int send_i2c(unsigned int dataToSend) {
     P1OUT |= BIT0;
-    enableTimerInterrupt(timerCompareHalfSecond);
 
     dataToSendI2C = dataToSend;
 
     if (dataToSendI2C == 0x081 || dataToSendI2C == 0x041 || dataToSendI2C == 0x021 || dataToSendI2C == 0x011 || dataToSendI2C == 0x018 || dataToSendI2C == 0x00) {
-        if (ledSlaveEnabled != 0){
+        if (ledSlaveEnabled != 0) {
             UCB1I2CSA = 0x0042;
             UCB1CTLW0 |= UCTXSTT;
             while (UCB0CTLW0 & UCTXSTP);
-            delay(1);
+            delay(10);
         }
     }
 
     UCB1I2CSA = 0x0069;
     UCB1CTLW0 |= UCTXSTT;
     while (UCB0CTLW0 & UCTXSTP);
+    delay(10);
 
     dataToSendI2C = 0x00;
     return 0;
 }
 
 
-int send_led_reset(void) {
+int resetLEDs(void) {
     // *
+    send_i2c(0x018);
     return 0;
 }
 
 
-int send_lcd_reset(void) {
+int resetLCD(void) {
     // #
+    send_i2c(0x012);
     return 0;
 }
 
@@ -125,9 +136,29 @@ unsigned int convertKeypadToASCII(unsigned int keypadValue) {
 
 
 int passcode() {
-    unsigned int passcodeFirstDigit = 0x028;  // 7
-    unsigned int passcodeSecondDigit = 0x084;  // 2
-    unsigned int passcodeThirdDigit = 0x022;  // 9
+    unsigned int keypadValue = checkKeypad();
+    send_i2c(keypadValue);
+    if (keypadValue != 0x00 && lastPasscodeEntry == 0x00) {
+        switch (passcodeCounter) {
+        case 0:
+            passcodeFirstEntry = keypadValue;
+            passcodeCounter = 1;
+            break;
+        case 1:
+            passcodeSecondEntry = keypadValue;
+            passcodeCounter = 2;
+            break;
+        case 2:
+            passcodeThirdEntry = keypadValue;
+            if (passcodeFirstDigit == passcodeFirstEntry && passcodeSecondDigit == passcodeSecondEntry && passcodeThirdDigit == passcodeThirdEntry) {
+                passcodeEnteredCorrectly = 1;
+            }
+            passcodeCounter = 0;
+            resetLCD();
+            break;
+        }
+    }
+    lastPasscodeEntry = keypadValue;
     return 0;
 }
 
@@ -190,7 +221,15 @@ int main(void){
 //    delay(10000);
 
     // check and wait for the passcode
+    P6OUT |= BIT6;
+    while (passcodeEnteredCorrectly == 0) {
+        passcode();
+    }
+    P6OUT &= ~BIT6;
+
     ledSlaveEnabled = 1;    // enables led slave
+    enableTimerInterrupt(timerCompareHalfSecond);
+
     while(1) {
         // unsigned int keypadValue = checkKeypad();
         send_i2c(checkKeypad());
