@@ -6,6 +6,7 @@
  */
 
 int dataSent = 0;
+int ledSlaveEnabled = 0;
 unsigned int dataToSendI2C = 0x00;
 int timerCompareHalfSecond = 9366;
 
@@ -32,6 +33,15 @@ void configI2C(void) {
 
     UCB1IE |= UCTXIE0;
     //-- END Config. I2C Master
+    return;
+}
+
+
+void configKeypad(void){
+    //-- Setup Ports for Keypad. 3.7 is LeftMost
+    P3DIR &= ~0b11111111;   // Clear P3.0-3.7 for input
+    P3OUT &= ~0b11111111;   // Clear input initially
+    P3REN |= 0xFF;          // Enable pull-up/pull-down resistors on port 3
     return;
 }
 
@@ -66,15 +76,6 @@ void disableTimerInterrupt() {
 }
 
 
-void configKeypad(void){
-    //-- Setup Ports for Keypad
-    P3DIR &= ~0b11111111;   // Clear P3.0-3.7 for input
-    P3OUT &= ~0b11111111;   // Clear input initially
-    P3REN |= 0xFF;          // Enable pull-up/pull-down resistors on port 3
-    return;
-}
-
-
 int delay(int delay){
     int zzz;
     for(zzz=0; zzz<delay; zzz++){}
@@ -87,15 +88,19 @@ int send_i2c(unsigned int dataToSend) {
     enableTimerInterrupt(timerCompareHalfSecond);
 
     dataToSendI2C = dataToSend;
-    UCB1I2CSA = 0x0042;
-    UCB1CTLW0 |= UCTXSTT;
-    while (UCB0CTLW0 & UCTXSTP);
-    delay(5);
+
+    if (dataToSendI2C == 0x081 || dataToSendI2C == 0x041 || dataToSendI2C == 0x021 || dataToSendI2C == 0x011 || dataToSendI2C == 0x018 || dataToSendI2C == 0x00) {
+        if (ledSlaveEnabled != 0){
+            UCB1I2CSA = 0x0042;
+            UCB1CTLW0 |= UCTXSTT;
+            while (UCB0CTLW0 & UCTXSTP);
+            delay(1);
+        }
+    }
 
     UCB1I2CSA = 0x0069;
     UCB1CTLW0 |= UCTXSTT;
     while (UCB0CTLW0 & UCTXSTP);
-    delay(5);
 
     dataToSendI2C = 0x00;
     return 0;
@@ -183,11 +188,12 @@ int main(void){
 //    keypadValue = 0x011;
 //    send_i2c(keypadValue);
 //    delay(10000);
+
+    // check and wait for the passcode
+    ledSlaveEnabled = 1;    // enables led slave
     while(1) {
-        unsigned int keypadValue = checkKeypad();
-        if (keypadValue != 0x00) {
-            send_i2c(keypadValue);
-        }
+        // unsigned int keypadValue = checkKeypad();
+        send_i2c(checkKeypad());
 //        keypadValue = 0x041;
 
     }
@@ -200,6 +206,10 @@ int main(void){
 //-- Service I2C B1
 #pragma vector=EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
+//    if (UCNACKIFG != 0x0) {
+//        // UCB1IFG &= ~UCTXIFG0;
+//        return;
+//    }
     if (dataSent == 1) {
         UCB1IFG &= ~UCTXIFG0;
         UCB1CTL1 |= UCTXSTP;
