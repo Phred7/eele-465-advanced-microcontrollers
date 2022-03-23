@@ -102,14 +102,14 @@ int send_i2c(unsigned int dataToSend) {
             UCB1I2CSA = 0x0042;
             UCB1CTLW0 |= UCTXSTT;
             while (UCB0CTLW0 & UCTXSTP);
-            delay(10);
+            delay(15);
         }
     }
 
     UCB1I2CSA = 0x0069;
     UCB1CTLW0 |= UCTXSTT;
     while (UCB0CTLW0 & UCTXSTP);
-    delay(10);
+    delay(15);
 
     dataToSendI2C = 0x00;
     return 0;

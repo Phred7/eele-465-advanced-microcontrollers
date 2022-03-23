@@ -15,6 +15,7 @@ unsigned int patternDMask = 0x08;
 
 
 void configI2C(void) {
+
     P1SEL1 &= ~BIT3;      // P1.3 SCL
     P1SEL0 |= BIT3;
     P1SEL1 &= ~BIT2;      // P1.2 SDA
@@ -109,6 +110,9 @@ int main(void) {
     P1DIR |= BIT1;        // P1.1
     P1OUT &= ~BIT1;       // Init val = 0
 
+    P6DIR |= BIT6;
+    P6OUT &= ~BIT6;
+
     P3DIR |= 0x0FF;
     P3OUT &= ~0x0FF;
 
@@ -157,15 +161,16 @@ int main(void) {
                 break;
             case 1: // B
                 enableTimerInterrupt(16425);
-                if (lastPatternData != 0x041) {
-                    patternBFlag = 0;
-                }
-                if (patternData == 0x041 && lastPatternData == 0x041 && patternBFlag == 1) {
-                    patternBFlag = 0;
-                    patternBMask = 0x00;
-                }
                 if (patternData == 0x00) {
                     patternBFlag = 1;
+                } else {
+                    if (patternData == 0x041 && lastPatternData == 0x041 && patternBFlag == 1) {
+                        patternBFlag = 0;
+                        patternBMask = 0x00;
+                    }
+                }
+                if (patternData == 0x041) {
+                    patternBFlag = 0;
                 }
                 P3OUT = patternBMask;
                 break;
@@ -201,10 +206,12 @@ int main(void) {
 #pragma vector = EUSCI_B0_VECTOR
 __interrupt void EUSCI_B0_I2C_ISR(void) {
     recievedData = UCB0RXBUF;
-    if (passcodeEnteredCorrectly == 0) {
+    if (passcodeEnteredCorrectly == 0 && recievedData > 0x00) {
         passcodeEnteredCorrectly = 1;
+        P6OUT |= BIT6;
     }
     P1OUT ^= BIT0;
+
     UCB0CTLW1 &= ~UCRXIFG0;
     return;
 }

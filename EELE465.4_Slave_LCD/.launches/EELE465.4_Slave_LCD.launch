@@ -7,6 +7,7 @@
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROJECT.MSP430FR2310.ccxml.TI MSP430 USB1/MSP430" value="EELE465.4_Slave_LCD"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROJECT.MSP430FR2355.ccxml.TI MSP430 USB1/MSP430" value="EELE465.4_Slave_LCD"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_TARGET_CONFIG" value="${target_config_active_default:EELE465.4_Slave_LCD}"/>
+<stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.MSP430FR2310.ccxml.TI MSP430 USB1/MSP430" value="C:\Users\wward\Documents\GitHub\eele-465-advanced-microcontrollers\EELE465.4_Slave_LCD\Debug\EELE465.4_Slave_LCD.out"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.MSP430FR2355.ccxml.TI MSP430 USB1/MSP430" value="C:\Users\wward\Documents\GitHub\eele-465-advanced-microcontrollers\EELE465.4_Slave_LCD\Debug\EELE465.4_Slave_LCD.out"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
 <listEntry value="/EELE465.4_Slave_LCD"/>
