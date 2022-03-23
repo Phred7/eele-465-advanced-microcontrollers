@@ -159,13 +159,13 @@ int main(void) {
                 enableTimerInterrupt(16425);
                 if (lastPatternData != 0x041) {
                     patternBFlag = 0;
-                } else {
-                    if (patternData == 0x041 && patternBFlag == 1) {
-                        patternBMask = 0x00;
-                    }
-                    if (patternData == 0x00) {
-                        patternBFlag = 1;
-                    }
+                }
+                if (patternData == 0x041 && lastPatternData == 0x041 && patternBFlag == 1) {
+                    patternBFlag = 0;
+                    patternBMask = 0x00;
+                }
+                if (patternData == 0x00) {
+                    patternBFlag = 1;
                 }
                 P3OUT = patternBMask;
                 break;
