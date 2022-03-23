@@ -220,7 +220,7 @@ __interrupt void ISR_TB0_CCR0(void) {
         patternBMask += 0x01;
         break;
     case 2:
-        patternCMask = (patternCMask >> 1) | (patternCMask << 7);   // Addapted from GeeksForGeeks
+        patternCMask = (patternCMask >> 1) | (patternCMask << 7);   // Adapted from GeeksForGeeks
         break;
     case 3:
         if (patternDOn == 0) {
