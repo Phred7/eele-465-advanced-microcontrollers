@@ -83,6 +83,19 @@ unsigned int reverseFourBitInt(unsigned int fourBitInt) {
     return x >> 4;
 }
 
+void reset(void) {
+    recievedData = 0x00;
+    patternData = 0x00;
+    lastPatternData = 0x00;
+    patternBFlag = 0;
+    patternDOn = 0;
+    patternDDirection = 0;
+    patternBMask = 0x00;
+    patternCMask = 0x07F;
+    patternDMask = 0x08;
+    return;
+}
+
 
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
@@ -108,12 +121,14 @@ int main(void) {
     P1OUT |= BIT0;
     P1OUT |= BIT1;
 
+    P3OUT = 0x00;
 
     while(1) {
         if (passcodeEnteredCorrectly == 1) {
 
+            // reset recievedData and store the value in a variable that wont be updated by I2C recive
             if (recievedData != 0x00) {
-                patternData = recievedData;
+                patternData = recievedData; // may make patterns miss keypresses if they're to quick
                 recievedData = 0x00;
             }
 
@@ -129,6 +144,9 @@ int main(void) {
                 }
                 else if (patternData == 0x011) {
                     currentPattern = 3;
+                }
+                else if (patternData == 0x018) {
+                    reset();
                 }
             }
 
@@ -171,8 +189,6 @@ int main(void) {
             }
             patternData = 0x00;
 
-        } else {
-            passcodeEnteredCorrectly = 1;
         }
     }
 
@@ -185,6 +201,9 @@ int main(void) {
 #pragma vector = EUSCI_B0_VECTOR
 __interrupt void EUSCI_B0_I2C_ISR(void) {
     recievedData = UCB0RXBUF;
+    if (passcodeEnteredCorrectly == 0) {
+        passcodeEnteredCorrectly = 1;
+    }
     P1OUT ^= BIT0;
     UCB0CTLW1 &= ~UCRXIFG0;
     return;
