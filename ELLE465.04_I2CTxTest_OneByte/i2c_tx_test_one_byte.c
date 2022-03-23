@@ -13,11 +13,11 @@ int send_i2c(void) {
     return 0;
 }
 
-int send_led_reset(void) {
+int resetLEDs(void) {
     // *
 }
 
-int send_lcd_reset(void) {
+int resetLCD(void) {
     // #
 }
 

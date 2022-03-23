@@ -6,9 +6,19 @@
  */
 
 int dataSent = 0;
+int ledSlaveEnabled = 0;    // in this case 0 represents false
 unsigned int dataToSendI2C = 0x00;
 int timerCompareHalfSecond = 9366;
 
+int passcodeEnteredCorrectly = 0; // in this case 0 represents false
+int passcodeCounter = 0;
+unsigned int lastPasscodeEntry = 0x00;
+unsigned int passcodeFirstDigit = 0x028;  // 7
+unsigned int passcodeSecondDigit = 0x084;  // 2
+unsigned int passcodeThirdDigit = 0x022;  // 9
+unsigned int passcodeFirstEntry = 0x00;
+unsigned int passcodeSecondEntry = 0x00;
+unsigned int passcodeThirdEntry = 0x00;
 
 void configI2C(void) {
     //-- Config. I2C Master
@@ -32,6 +42,15 @@ void configI2C(void) {
 
     UCB1IE |= UCTXIE0;
     //-- END Config. I2C Master
+    return;
+}
+
+
+void configKeypad(void){
+    //-- Setup Ports for Keypad. 3.7 is LeftMost
+    P3DIR &= ~0b11111111;   // Clear P3.0-3.7 for input
+    P3OUT &= ~0b11111111;   // Clear input initially
+    P3REN |= 0xFF;          // Enable pull-up/pull-down resistors on port 3
     return;
 }
 
@@ -66,11 +85,6 @@ void disableTimerInterrupt() {
 }
 
 
-void configKeypad(void){
-    return;
-}
-
-
 int delay(int delay){
     int zzz;
     for(zzz=0; zzz<delay; zzz++){}
@@ -80,32 +94,38 @@ int delay(int delay){
 
 int send_i2c(unsigned int dataToSend) {
     P1OUT |= BIT0;
-    enableTimerInterrupt(timerCompareHalfSecond);
 
     dataToSendI2C = dataToSend;
-    UCB1I2CSA = 0x0042;
+
+    if (dataToSendI2C == 0x081 || dataToSendI2C == 0x041 || dataToSendI2C == 0x021 || dataToSendI2C == 0x011 || dataToSendI2C == 0x018 || dataToSendI2C == 0x00) {
+        if (ledSlaveEnabled != 0) {
+            UCB1I2CSA = 0x0042;
+            UCB1CTLW0 |= UCTXSTT;
+            while (UCB0CTLW0 & UCTXSTP);
+            delay(10);
+        }
+    }
+
+    UCB1I2CSA = 0x0069;
     UCB1CTLW0 |= UCTXSTT;
     while (UCB0CTLW0 & UCTXSTP);
-    delay(15);
-
-//    UCB1I2CSA = 0x0069;
-//    UCB1CTLW0 |= UCTXSTT;
-//    while (UCB0CTLW0 & UCTXSTP);
-//    delay(15);
+    delay(10);
 
     dataToSendI2C = 0x00;
     return 0;
 }
 
 
-int send_led_reset(void) {
+int resetLEDs(void) {
     // *
+    send_i2c(0x018);
     return 0;
 }
 
 
-int send_lcd_reset(void) {
+int resetLCD(void) {
     // #
+    send_i2c(0x012);
     return 0;
 }
 
@@ -116,49 +136,55 @@ unsigned int convertKeypadToASCII(unsigned int keypadValue) {
 
 
 int passcode() {
-    unsigned int passcodeFirstDigit = 0x028;  // 7
-    unsigned int passcodeSecondDigit = 0x084;  // 2
-    unsigned int passcodeThirdDigit = 0x022;  // 9
+    unsigned int keypadValue = checkKeypad();
+    send_i2c(keypadValue);
+    if (keypadValue != 0x00 && lastPasscodeEntry == 0x00) {
+        switch (passcodeCounter) {
+        case 0:
+            passcodeFirstEntry = keypadValue;
+            passcodeCounter = 1;
+            break;
+        case 1:
+            passcodeSecondEntry = keypadValue;
+            passcodeCounter = 2;
+            break;
+        case 2:
+            passcodeThirdEntry = keypadValue;
+            if (passcodeFirstDigit == passcodeFirstEntry && passcodeSecondDigit == passcodeSecondEntry && passcodeThirdDigit == passcodeThirdEntry) {
+                passcodeEnteredCorrectly = 1;
+            }
+            passcodeCounter = 0;
+            resetLCD();
+            break;
+        }
+    }
+    lastPasscodeEntry = keypadValue;
     return 0;
 }
 
 
 unsigned int checkKeypad() {
-    int columnValue = 0;
-    int rowValue = 0;
-    int keypadValue = 0;
+    int buttonValue = 0b0;
 
-    // set rows high
-    P3DIR &= ~0x0F0;        // make MSNibble an input
-    P3REN |= 0x0F0;         // enable resistor
-    P3OUT &= ~0x0F0;        // make a pull down resistor
+    P3DIR &= ~0b11110000;   // Set rows as inputs
+    P3OUT &= ~0b11110000;   // Set pull-down resistors for rows
+    P3DIR |=  0b00001111;   // Set columns as outputs
+    P3OUT |=  0b00001111;   // Set columns high
 
-    P3DIR |= 0x00F;         // make LSNibble an output
-    P3OUT = P3OUT | 0x0F;         // set LSN high
+    buttonValue = P3IN;     // Move input to variable
 
-    columnValue = P3IN;
-    columnValue &= 0x0F0;
-
-    if (columnValue == 0) {
-      return 0;
+    if (buttonValue == 0b0) {
+        return 0x00;
     }
 
-    // set columns high
-    P3DIR &= ~0x0F;        // make LSNibble an input
-    P3REN |= 0x0F;         // enable resistor
-    P3OUT &= ~0x0F;        // make a pull down resistor
+    P3DIR &= ~0b00001111;   // Set columns as input
+    P3OUT &= ~0b00001111;   // Set pull-down resistors for rows
+    P3DIR |=  0b11110000;   // Set rows as outputs
+    P3OUT |=  0b11110000;   // Set rows high
 
-    P3DIR |= 0x0F0;         // make MSNibble an output
-    P3OUT |= 0x0F0;         // set MSN high
+    buttonValue = buttonValue & P3IN;   // Add both nibbles together
 
-    rowValue = P3IN;
-
-    columnValue = columnValue << 4;
-
-    keypadValue = columnValue | rowValue;
-
-    // return keypadValue;
-    return 0xAB;
+    return buttonValue;
 }
 
 
@@ -189,16 +215,27 @@ int main(void){
 //        P3 = P3IN;
 //        //unsigned int value = checkKeypad();
 //    }
-    unsigned int keypadValue = checkKeypad();
-    keypadValue = 0x011;
-    send_i2c(keypadValue);
-    delay(10000);
-//    while(1) {
-//        unsigned int keypadValue = checkKeypad();
+//    unsigned int keypadValue = checkKeypad();
+//    keypadValue = 0x011;
+//    send_i2c(keypadValue);
+//    delay(10000);
+
+    // check and wait for the passcode
+    P6OUT |= BIT6;
+    while (passcodeEnteredCorrectly == 0) {
+        passcode();
+    }
+    P6OUT &= ~BIT6;
+
+    ledSlaveEnabled = 1;    // enables led slave
+    enableTimerInterrupt(timerCompareHalfSecond);
+
+    while(1) {
+        // unsigned int keypadValue = checkKeypad();
+        send_i2c(checkKeypad());
 //        keypadValue = 0x041;
-//        send_i2c(keypadValue);
-//        delay(10000);
-//    }
+
+    }
     return 0;
 }
 //-- END main
@@ -208,6 +245,10 @@ int main(void){
 //-- Service I2C B1
 #pragma vector=EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
+//    if (UCNACKIFG != 0x0) {
+//        // UCB1IFG &= ~UCTXIFG0;
+//        return;
+//    }
     if (dataSent == 1) {
         UCB1IFG &= ~UCTXIFG0;
         UCB1CTL1 |= UCTXSTP;
