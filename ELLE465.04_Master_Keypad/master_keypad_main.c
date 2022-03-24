@@ -8,14 +8,11 @@
 int dataSent = 0;
 int ledSlaveEnabled = 0;    // in this case 0 represents false
 unsigned int dataToSendI2C = 0x00;
-int timerCompareHalfSecond = 9366;
+static const int timerCompareHalfSecond = 9366;
 
 int passcodeEnteredCorrectly = 0; // in this case 0 represents false
 int passcodeCounter = 0;
 unsigned int lastPasscodeEntry = 0x00;
-unsigned int passcodeFirstDigit = 0x028;  // 7
-unsigned int passcodeSecondDigit = 0x084;  // 2
-unsigned int passcodeThirdDigit = 0x022;  // 9
 unsigned int passcodeFirstEntry = 0x00;
 unsigned int passcodeSecondEntry = 0x00;
 unsigned int passcodeThirdEntry = 0x00;
@@ -93,7 +90,6 @@ int delay(int delay){
 
 
 int send_i2c(unsigned int dataToSend) {
-    P1OUT |= BIT0;
 
     dataToSendI2C = dataToSend;
 
@@ -112,53 +108,8 @@ int send_i2c(unsigned int dataToSend) {
     delay(15);
 
     dataToSendI2C = 0x00;
-    return 0;
-}
 
-
-int resetLEDs(void) {
-    // *
-    send_i2c(0x018);
-    return 0;
-}
-
-
-int resetLCD(void) {
-    // #
-    send_i2c(0x012);
-    return 0;
-}
-
-
-unsigned int convertKeypadToASCII(unsigned int keypadValue) {
-    return 0x00;
-}
-
-
-int passcode() {
-    unsigned int keypadValue = checkKeypad();
-    send_i2c(keypadValue);
-    if (keypadValue != 0x00 && lastPasscodeEntry == 0x00) {
-        switch (passcodeCounter) {
-        case 0:
-            passcodeFirstEntry = keypadValue;
-            passcodeCounter = 1;
-            break;
-        case 1:
-            passcodeSecondEntry = keypadValue;
-            passcodeCounter = 2;
-            break;
-        case 2:
-            passcodeThirdEntry = keypadValue;
-            if (passcodeFirstDigit == passcodeFirstEntry && passcodeSecondDigit == passcodeSecondEntry && passcodeThirdDigit == passcodeThirdEntry) {
-                passcodeEnteredCorrectly = 1;
-            }
-            passcodeCounter = 0;
-            resetLCD();
-            break;
-        }
-    }
-    lastPasscodeEntry = keypadValue;
+    delay(1000);
     return 0;
 }
 
@@ -187,6 +138,50 @@ unsigned int checkKeypad() {
     return buttonValue;
 }
 
+int resetLEDs(void) {
+    // *
+    send_i2c(0x018);
+    return 0;
+}
+
+
+int resetLCD(void) {
+    // #
+    send_i2c(0x012);
+    return 0;
+}
+
+
+int passcode() {
+    unsigned int keypadValue = checkKeypad();
+    if (keypadValue != 0x00 && lastPasscodeEntry == 0x00) {
+        switch (passcodeCounter) {
+        case 0:
+            passcodeFirstEntry = keypadValue;
+            passcodeCounter = 1;
+            break;
+        case 1:
+            passcodeSecondEntry = keypadValue;
+            passcodeCounter = 2;
+            break;
+        case 2:
+            passcodeThirdEntry = keypadValue;
+            static const unsigned int passcodeFirstDigit = 0x028;  // 7
+            static const unsigned int passcodeSecondDigit = 0x084;  // 2
+            static const unsigned int passcodeThirdDigit = 0x022;  // 9
+            if (passcodeFirstDigit == passcodeFirstEntry && passcodeSecondDigit == passcodeSecondEntry && passcodeThirdDigit == passcodeThirdEntry) {
+                passcodeEnteredCorrectly = 1;
+            }
+            passcodeCounter = 0;
+            resetLCD();
+            break;
+        }
+    }
+    send_i2c(keypadValue);
+    lastPasscodeEntry = keypadValue;
+    return 0;
+}
+
 
 int main(void){
 
@@ -207,19 +202,6 @@ int main(void){
 
     __enable_interrupt();
 
-//    unsigned int P3 = 0;
-//    while(1) {
-//        P3DIR &= ~0x0FF;        // make MSNibble an input
-//        P3REN |= 0x0FF;         // enable resistor
-//        P3OUT &= ~0x0FF;        // make a pull down resistor
-//        P3 = P3IN;
-//        //unsigned int value = checkKeypad();
-//    }
-//    unsigned int keypadValue = checkKeypad();
-//    keypadValue = 0x011;
-//    send_i2c(keypadValue);
-//    delay(10000);
-
     // check and wait for the passcode
     P6OUT |= BIT6;
     while (passcodeEnteredCorrectly == 0) {
@@ -231,10 +213,8 @@ int main(void){
     enableTimerInterrupt(timerCompareHalfSecond);
 
     while(1) {
-        // unsigned int keypadValue = checkKeypad();
-        send_i2c(checkKeypad());
-//        keypadValue = 0x041;
-
+        unsigned int keypadValue = checkKeypad();
+        send_i2c(keypadValue);
     }
     return 0;
 }
@@ -245,10 +225,6 @@ int main(void){
 //-- Service I2C B1
 #pragma vector=EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
-//    if (UCNACKIFG != 0x0) {
-//        // UCB1IFG &= ~UCTXIFG0;
-//        return;
-//    }
     if (dataSent == 1) {
         UCB1IFG &= ~UCTXIFG0;
         UCB1CTL1 |= UCTXSTP;
@@ -270,10 +246,3 @@ __interrupt void ISR_TB0_CCR0(void) {
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
 }
 //-- END TB0 ISR
-
-////-- Service TB0CCR1
-//#pragma vector = TIMER0_B1_VECTOR
-//__interrupt void ISR_TB0CCR1(void) {
-//    TB0CCTL1 &= ~CCIFG;         // Clear CCR1 flag
-//}
-////-- END TB0CCR1 ISR

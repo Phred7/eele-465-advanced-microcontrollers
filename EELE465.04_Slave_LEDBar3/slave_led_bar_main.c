@@ -221,7 +221,7 @@ int main(void) {
             if (patternData != 0x00) {
                 lastPatternData = patternData;
             }
-            //patternData = 0x00;
+            patternData = 0x00;
 
         }
     }
