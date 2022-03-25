@@ -160,33 +160,7 @@ int main(void) {
                 P3OUT = 0x0AA;
                 break;
             case 1: // B
-                // enableTimerInterrupt(16425);
-                enableTimerInterrupt(1642);
-//                if (patternData == 0x00) {
-//                    patternBFlag = 1;
-//                } else {
-//                    if (patternData == 0x041 && lastPatternData == 0x041 && patternBFlag == 1) {
-//                        patternBFlag = 0;
-//                        patternBMask = 0x00;
-//                    }
-//                }
-//                if (patternData == 0x041) {
-//                    patternBFlag = 0;
-//                }
-
-
-//                if (lastPatternData == 0x041) {
-//                   if (patternData != 0x041 && patternBFlag != 1) {
-//                       if (patternData == 0x00) {
-//                           patternBFlag = 1;
-//                       }
-//                   } else {
-//                       patternBMask = 0x00;
-//                       patternBFlag = 0;
-//                   }
-//                } else {
-//                    patternBFlag = 1;
-//                }
+                enableTimerInterrupt(16425);
 
                 if ((lastPatternData == 0x041) && (patternData == 0x00)) {
                     patternBFlag = 1;
