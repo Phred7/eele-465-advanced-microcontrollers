@@ -51,6 +51,14 @@ void configTimer(void){
     TB0CTL |= ID__8;                // ste d1 to 8
     TB0EX0 |= TBIDEX__8;            // set d2 to 8
     TB0CCR0 = 16000;
+
+    // TB1
+//    TB1CTL |= TBCLR;                // Clear timer and divs
+//    TB1CTL |= TBSSEL__SMCLK;        // SRC = SMCLK
+//    TB1CTL |= MC__UP;               // Mode = UP
+//    TB1CTL |= CNTL_0;               // Length = 16-bit
+//    TB1CTL |= ID__8;                // ste d1 to 8
+//    TB1EX0 |= TBIDEX__8;            // set d2 to 8
     return;
 }
 
@@ -100,7 +108,9 @@ void writeToLEDBar(unsigned int mask) {
     static const unsigned int P1Mask = 0b11110011;
     static const unsigned int P2Mask = 0b00001100;
     P1OUT = (mask & (P1Mask)) | (P1OUT & (P2Mask));
+    unsigned int p2LED = P2OUT & 0x01;
     P2OUT = (mask & (P2Mask)) << 4;
+    P2OUT |= p2LED;
     return;
 }
 
@@ -110,6 +120,8 @@ int main(void) {
 
 
     PM5CTL0 &= ~LOCKLPM5;       // Enable GPIO
+
+
 
 //    P1DIR |= BIT0;        // P1.0
 //    P1OUT &= ~BIT0;       // Init val = 0
@@ -127,6 +139,9 @@ int main(void) {
 
     P2DIR |= 0b11000000;
     P2OUT &= ~0b11000000;
+
+    P2DIR |= BIT0;
+    P2OUT &= ~BIT0;
 
 //    P3DIR |= 0x0FF;
 //    P3OUT &= ~0x0FF;
@@ -225,7 +240,10 @@ __interrupt void EUSCI_B0_I2C_ISR(void) {
     receivedData = UCB0RXBUF;
     if (passcodeEnteredCorrectly == 0 && receivedData > 0x00) {
         passcodeEnteredCorrectly = 1;
-        // P6OUT |= BIT6;
+        P2OUT |= BIT0;
+//        TB1CCR0 = 16425;
+//        TB1CCTL0 |= CCIE;               // Enable TB0 CCR0 overflow IRQ
+//        TB1CCTL0 &= ~CCIFG;             // Clear CCR0 flag
     }
     // P1OUT ^= BIT0;
 
@@ -273,3 +291,12 @@ __interrupt void ISR_TB0_CCR0(void) {
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
 }
 //-- END TB0 ISR
+
+
+////-- Service TB1
+//#pragma vector = TIMER0_B1_VECTOR
+//__interrupt void ISR_TB1_CCR0(void) {
+//    P2OUT ^= BIT0;
+//    TB1CCTL0 &= ~CCIFG;         // Clear CCR0 flag
+//}
+////-- END TB1 ISR
