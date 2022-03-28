@@ -146,11 +146,11 @@ int main(void) {
         if (passcodeEnteredCorrectly == 1) {
 
             // reset receivedData and store the value in a variable that wont be updated by I2C recive
-            if (receivedData != 0x00) {
-                patternData = receivedData; // may make patterns miss keypresses if they're to quick
-                receivedData = 0x00;
-            }
-
+//            if (receivedData != 0x00) {
+//                patternData = receivedData; // may make patterns miss keypresses if they're to quick
+//                receivedData = 0x00;
+//            }
+            patternData = receivedData;
             if (patternData != 0x00){
                 if (patternData == 0x081) {
                     currentPattern = 0;
@@ -209,7 +209,7 @@ int main(void) {
             if (patternData != 0x00) {
                 lastPatternData = patternData;
             }
-            //patternData = 0x00;
+            patternData = 0x00;
 
         }
     }
