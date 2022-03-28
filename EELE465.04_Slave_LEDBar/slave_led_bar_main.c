@@ -13,7 +13,6 @@ unsigned int patternBMask = 0x00;
 unsigned int patternCMask = 0x07F;
 unsigned int patternDMask = 0x08;
 
-
 void configI2C(void) {
 
     P1SEL1 &= ~BIT3;      // P1.3 SCL
@@ -97,6 +96,14 @@ void reset(void) {
     return;
 }
 
+void writeToLEDBar(unsigned int mask) {
+    static const unsigned int P1Mask = 0b11110011;
+    static const unsigned int P2Mask = 0b00001100;
+    P1OUT = (mask & (P1Mask)) | (P1OUT & (P2Mask));
+    P2OUT = (mask & (P2Mask)) << 4;
+    return;
+}
+
 
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
@@ -104,28 +111,36 @@ int main(void) {
 
     PM5CTL0 &= ~LOCKLPM5;       // Enable GPIO
 
-    P1DIR |= BIT0;        // P1.0
-    P1OUT &= ~BIT0;       // Init val = 0
+//    P1DIR |= BIT0;        // P1.0
+//    P1OUT &= ~BIT0;       // Init val = 0
+//
+//    P1DIR |= BIT1;        // P1.1
+//    P1OUT &= ~BIT1;       // Init val = 0
 
-    P1DIR |= BIT1;        // P1.1
-    P1OUT &= ~BIT1;       // Init val = 0
+//    P6DIR |= BIT6;
+//    P6OUT &= ~BIT6;
 
-    P6DIR |= BIT6;
-    P6OUT &= ~BIT6;
 
-    P3DIR |= 0x0FF;
-    P3OUT &= ~0x0FF;
+    // LED Bar:
+    P1DIR |= 0b11110011;
+    P1OUT &= ~0b11110011;
+
+    P2DIR |= 0b11000000;
+    P2OUT &= ~0b11000000;
+
+//    P3DIR |= 0x0FF;
+//    P3OUT &= ~0x0FF;
 
     configI2C();
 
     configTimer();
 
     __enable_interrupt();
+//
+//    P1OUT |= BIT0;
+//    P1OUT |= BIT1;
 
-    P1OUT |= BIT0;
-    P1OUT |= BIT1;
-
-    P3OUT = 0x00;
+    writeToLEDBar(0x00);
 
     while(1) {
         if (passcodeEnteredCorrectly == 1) {
@@ -157,7 +172,7 @@ int main(void) {
             switch (currentPattern) {
             case 0: // A
                 disableTimerInterrupt();
-                P3OUT = 0x0AA;
+                writeToLEDBar(0x0AA);
                 break;
             case 1: // B
                 enableTimerInterrupt(16425);
@@ -174,20 +189,19 @@ int main(void) {
                 else if ((lastPatternData != 0x41) || (patternData != 0)) {
                     patternBFlag = 0;
                 }
-
-                P3OUT = patternBMask;
+                writeToLEDBar(patternBMask);
                 break;
             case 2: // C
                 enableTimerInterrupt(32850);
-                P3OUT = patternCMask;
+                writeToLEDBar(patternCMask);
                 break;
             case 3: // D
                 if (patternDOn == 0) {
                     enableTimerInterrupt(32850);
-                    P3OUT = (reverseFourBitInt(patternDMask) << 4) + patternDMask;
+                    writeToLEDBar((reverseFourBitInt(patternDMask) << 4) + patternDMask);
                 } else {
                     enableTimerInterrupt(4107);
-                    P3OUT = 0x00;
+                    writeToLEDBar(0x00);
                 }
                 break;
             }
@@ -211,9 +225,9 @@ __interrupt void EUSCI_B0_I2C_ISR(void) {
     receivedData = UCB0RXBUF;
     if (passcodeEnteredCorrectly == 0 && receivedData > 0x00) {
         passcodeEnteredCorrectly = 1;
-        P6OUT |= BIT6;
+        // P6OUT |= BIT6;
     }
-    P1OUT ^= BIT0;
+    // P1OUT ^= BIT0;
 
     UCB0CTLW1 &= ~UCRXIFG0;
     return;
