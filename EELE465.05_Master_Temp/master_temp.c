@@ -61,6 +61,37 @@ void disableTimerInterrupt() {
     return;
 }
 
+void configKeypad(void){
+    //-- Setup Ports for Keypad. 3.7 is LeftMost
+    P3DIR &= ~0b11111111;   // Clear P3.0-3.7 for input
+    P3OUT &= ~0b11111111;   // Clear input initially
+    P3REN |= 0xFF;          // Enable pull-up/pull-down resistors on port 3
+    return;
+}
+
+unsigned int checkKeypad() {
+    int buttonValue = 0b0;
+
+    P3DIR &= ~0b11110000;   // Set rows as inputs
+    P3OUT &= ~0b11110000;   // Set pull-down resistors for rows
+    P3DIR |=  0b00001111;   // Set columns as outputs
+    P3OUT |=  0b00001111;   // Set columns high
+
+    buttonValue = P3IN;     // Move input to variable
+
+    if (buttonValue == 0b0) {
+        return 0x00;
+    }
+
+    P3DIR &= ~0b00001111;   // Set columns as input
+    P3OUT &= ~0b00001111;   // Set pull-down resistors for rows
+    P3DIR |=  0b11110000;   // Set rows as outputs
+    P3OUT |=  0b11110000;   // Set rows high
+
+    buttonValue = buttonValue & P3IN;   // Add both nibbles together
+
+    return buttonValue;
+}
 
 int delay(int delay){
     int zzz;
@@ -95,6 +126,8 @@ int main(void)
 
     configTimer();
 
+    configKeypad();
+
     __enable_interrupt();
 
     while(1){};
@@ -117,7 +150,6 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         UCB1IFG &= ~UCTXIFG0;
     }
     return;
-
 }
 //-- END I2C B1 ISR
 
