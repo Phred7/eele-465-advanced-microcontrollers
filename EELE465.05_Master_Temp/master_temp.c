@@ -190,7 +190,12 @@ int main(void)
 
     enableTimerInterrupt(6244);
 
-    while(numberOfReadings < n) {}
+    while(numberOfReadings < n) {
+        if(newReading == 1) {
+            readings[numberOfReadings] = newestReading;
+            newReading = 0;
+        }
+    }
 
     while(1) {
         if(newReading == 1) {
