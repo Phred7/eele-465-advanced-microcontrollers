@@ -7,6 +7,11 @@
 
 int dataSent = 0;
 unsigned int dataToSendI2C = 0x00;
+int n = 0;
+int numberOfReadings = 0;
+int newReading = 0;
+float newestReading = 0.0;
+float movingAverage = 0.0;
 
 void configI2C(void) {
     //-- Config. I2C Master
@@ -111,6 +116,15 @@ int send_i2c(unsigned int dataToSend) {
     return 0;
 }
 
+float getMovingAverage(float averageArray[]) {
+    float sumTotal = 0.0;
+    int j;
+    for(j=0; j<n; j++) {
+        sumTotal += averageArray[j];
+    }
+    return sumTotal;
+}
+
 int main(void)
 {
 	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
@@ -130,7 +144,69 @@ int main(void)
 
     __enable_interrupt();
 
-    while(1){};
+    while(n == 0) {
+        unsigned int keypadValue = checkKeypad();
+        switch (keypadValue) {
+        case 0x088:
+            n = 1;
+            break;
+        case 0x084:
+            n = 2;
+            break;
+        case 0x082:
+            n = 3;
+            break;
+        case 0x048:
+            n = 4;
+            break;
+        case 0x044:
+            n = 5;
+            break;
+        case 0x042:
+            n = 6;
+            break;
+        case 0x028:
+            n = 7;
+            break;
+        case 0x024:
+            n = 8;
+            break;
+        case 0x022:
+            n = 9;
+            break;
+        default:
+            n = 0;
+            break;
+        }
+    }
+
+    send_i2c(n);
+
+    float readings[n];
+    int i;
+    for (i = 0; i < n; i++) {
+        readings[i] = 0.0;
+    }
+
+    enableTimerInterrupt(6244);
+
+    while(numberOfReadings < n) {}
+
+    while(1) {
+        if(newReading == 1) {
+            int k;
+            for(k=0;k<n;k++) {
+                if(k == (n-1)) {
+                    readings[k] = 0.0;
+                } else {
+                    readings[k] = readings[k+1];
+                }
+            }
+            newReading = 0;
+        }
+        movingAverage = getMovingAverage(readings);
+    }
+
 	return 0;
 }
 //-- END main
@@ -156,7 +232,12 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
 //-- Service TB0
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void ISR_TB0_CCR0(void) {
-    P1OUT ^= BIT0;
+    if (numberOfReadings > n) {
+        send_i2c(movingAverage);
+    }
+    newestReading = 0.0;
+    newReading = 1;
+    numberOfReadings++;
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
 }
 //-- END TB0 ISR
