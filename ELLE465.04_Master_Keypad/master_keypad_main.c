@@ -109,7 +109,7 @@ int send_i2c(unsigned int dataToSend) {
 
     dataToSendI2C = 0x00;
 
-    delay(1000);
+    delay(200);
     return 0;
 }
 
