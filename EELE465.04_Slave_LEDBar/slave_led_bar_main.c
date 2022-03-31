@@ -91,18 +91,6 @@ unsigned int reverseFourBitInt(unsigned int fourBitInt) {
     return x >> 4;
 }
 
-void reset(void) {
-    receivedData = 0x00;
-    patternData = 0x00;
-    lastPatternData = 0x00;
-    patternBFlag = 0;
-    patternDOn = 0;
-    patternDDirection = 0;
-    patternBMask = 0x00;
-    patternCMask = 0x07F;
-    patternDMask = 0x08;
-    return;
-}
 
 void writeToLEDBar(unsigned int mask) {
     static const unsigned int P1Mask = 0b11110011;
@@ -111,6 +99,23 @@ void writeToLEDBar(unsigned int mask) {
     unsigned int p2LED = P2OUT & 0x01;
     P2OUT = (mask & (P2Mask)) << 4;
     P2OUT |= p2LED;
+    return;
+}
+
+
+void reset(void) {
+    disableTimerInterrupt();
+    writeToLEDBar(0x00);
+    currentPattern = 4;
+    receivedData = 0x00;
+    patternData = 0x00;
+    lastPatternData = 0x00;
+    patternDOn = 0;
+    patternDDirection = 0;
+    patternCMask = 0x07F;
+    patternDMask = 0x08;
+    passcodeEnteredCorrectly = 0;
+    P2OUT &= ~BIT0;
     return;
 }
 

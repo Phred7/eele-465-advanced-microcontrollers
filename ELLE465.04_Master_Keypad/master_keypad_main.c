@@ -8,6 +8,7 @@
 int dataSent = 0;
 int ledSlaveEnabled = 0;    // in this case 0 represents false
 unsigned int dataToSendI2C = 0x00;
+unsigned int lastLCDDataSentI2C = 0x00;
 static const int timerCompareHalfSecond = 9366;
 
 int passcodeEnteredCorrectly = 0; // in this case 0 represents false
@@ -102,14 +103,21 @@ int send_i2c(unsigned int dataToSend) {
         }
     }
 
-    UCB1I2CSA = 0x0069;
-    UCB1CTLW0 |= UCTXSTT;
-    while (UCB0CTLW0 & UCTXSTP);
-    delay(15);
+    if (dataToSendI2C != lastLCDDataSentI2C) {
+        lastLCDDataSentI2C = dataToSendI2C;
+        UCB1I2CSA = 0x0069;
+        UCB1CTLW0 |= UCTXSTT;
+        while (UCB0CTLW0 & UCTXSTP);
+        delay(15);
+        UCB1I2CSA = 0x0069;
+        UCB1CTLW0 |= UCTXSTT;
+        while (UCB0CTLW0 & UCTXSTP);
+        delay(15);
+    }
 
     dataToSendI2C = 0x00;
 
-    delay(200);
+    delay(100);
     return 0;
 }
 

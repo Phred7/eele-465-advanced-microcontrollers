@@ -1,10 +1,10 @@
 ******************************************************************************
                   MSP430 Linker PC v20.2.5                     
 ******************************************************************************
->> Linked Thu Mar 24 13:11:25 2022
+>> Linked Thu Mar 31 01:42:12 2022
 
 OUTPUT FILE NAME:   <ELLE465.04_Master_Keypad.out>
-ENTRY POINT SYMBOL: "_c_int00_noargs"  address: 000084a8
+ENTRY POINT SYMBOL: "_c_int00_noargs"  address: 000084ce
 
 
 MEMORY CONFIGURATION
@@ -16,8 +16,8 @@ MEMORY CONFIGURATION
   INFO                  00001800   00000200  00000000  00000200  RWIX
   TLVMEM                00001a00   00000200  00000000  00000200  RWIX
   BOOTCODE              00001c00   00000400  00000000  00000400  RWIX
-  RAM                   00002000   00001000  000000b2  00000f4e  RWIX
-  FRAM                  00008000   00007f80  000004d6  00007aaa  RWIX
+  RAM                   00002000   00001000  000000b4  00000f4c  RWIX
+  FRAM                  00008000   00007f80  000004fc  00007a84  RWIX
   JTAGSIGNATURE         0000ff80   00000004  00000004  00000000  RWIX  ffff 
   BSLSIGNATURE          0000ff84   00000004  00000004  00000000  RWIX  ffff 
   BSLCONFIGURATIONSIGNA 0000ff88   00000002  00000002  00000000  RWIX  ffff 
@@ -87,9 +87,8 @@ section   page    origin      length       input sections
 .sysmem    0    00008000    00000000     UNINITIALIZED
 
 .cinit     0    00008000    00000018     
-                  00008000    00000008     (__TI_handler_table)
-                  00008008    00000007     (.cinit..data.load) [load image, compression = lzss]
-                  0000800f    00000001     --HOLE-- [fill = 0]
+                  00008000    00000008     (.cinit..data.load) [load image, compression = lzss]
+                  00008008    00000008     (__TI_handler_table)
                   00008010    00000008     (__TI_cinit_table)
 
 .pinit     0    00008018    00000000     UNINITIALIZED
@@ -107,34 +106,34 @@ section   page    origin      length       input sections
 
 .const     0    00008018    00000000     UNINITIALIZED
 
-.text      0    00008018    0000046c     
+.text      0    00008018    00000492     
                   00008018    000000ee     rts430x_lc_sd_eabi.lib : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
-                  00008106    00000080     master_keypad_main.obj (.text:send_i2c)
-                  00008186    00000076     master_keypad_main.obj (.text:passcode)
-                  000081fc    0000006a     rts430x_lc_sd_eabi.lib : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit_hold_wdt:__TI_auto_init_nobinit_nopinit_hold_wdt)
-                  00008266    0000006a     master_keypad_main.obj (.text:main)
-                  000082d0    00000056     master_keypad_main.obj (.text:checkKeypad)
-                  00008326    00000052     master_keypad_main.obj (.text:configI2C)
-                  00008378    00000040     rts430x_lc_sd_eabi.lib : cpy_util.asm.obj (.text:__memcpy_far)
-                  000083b8    0000003c                            : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
-                  000083f4    0000002a     master_keypad_main.obj (.text:configTimer)
-                  0000841e    00000020     master_keypad_main.obj (.text:delay)
-                  0000843e    00000018     master_keypad_main.obj (.text:enableTimerInterrupt)
-                  00008456    00000016     master_keypad_main.obj (.text:configKeypad)
-                  0000846c    0000000c     master_keypad_main.obj (.text:resetLCD)
-                  00008478    00000006     rts430x_lc_sd_eabi.lib : exit.c.obj (.text:abort)
-                  0000847e    00000004                            : pre_init.c.obj (.text:_system_pre_init)
-                  00008482    00000002                            : startup.c.obj (.text:_system_post_cinit)
+                  00008106    000000a6     master_keypad_main.obj (.text:send_i2c)
+                  000081ac    00000076     master_keypad_main.obj (.text:passcode)
+                  00008222    0000006a     rts430x_lc_sd_eabi.lib : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit_hold_wdt:__TI_auto_init_nobinit_nopinit_hold_wdt)
+                  0000828c    0000006a     master_keypad_main.obj (.text:main)
+                  000082f6    00000056     master_keypad_main.obj (.text:checkKeypad)
+                  0000834c    00000052     master_keypad_main.obj (.text:configI2C)
+                  0000839e    00000040     rts430x_lc_sd_eabi.lib : cpy_util.asm.obj (.text:__memcpy_far)
+                  000083de    0000003c                            : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
+                  0000841a    0000002a     master_keypad_main.obj (.text:configTimer)
+                  00008444    00000020     master_keypad_main.obj (.text:delay)
+                  00008464    00000018     master_keypad_main.obj (.text:enableTimerInterrupt)
+                  0000847c    00000016     master_keypad_main.obj (.text:configKeypad)
+                  00008492    0000000c     master_keypad_main.obj (.text:resetLCD)
+                  0000849e    00000006     rts430x_lc_sd_eabi.lib : exit.c.obj (.text:abort)
+                  000084a4    00000004                            : pre_init.c.obj (.text:_system_pre_init)
+                  000084a8    00000002                            : startup.c.obj (.text:_system_post_cinit)
 
 .text:_isr 
-*          0    00008484    00000052     
-                  00008484    00000024     master_keypad_main.obj (.text:_isr:EUSCI_B1_I2C_ISR)
-                  000084a8    0000001c     rts430x_lc_sd_eabi.lib : boot.c.obj (.text:_isr:_c_int00_noargs)
-                  000084c4    0000000a     master_keypad_main.obj (.text:_isr:ISR_TB0_CCR0)
-                  000084ce    00000008     rts430x_lc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
+*          0    000084aa    00000052     
+                  000084aa    00000024     master_keypad_main.obj (.text:_isr:EUSCI_B1_I2C_ISR)
+                  000084ce    0000001c     rts430x_lc_sd_eabi.lib : boot.c.obj (.text:_isr:_c_int00_noargs)
+                  000084ea    0000000a     master_keypad_main.obj (.text:_isr:ISR_TB0_CCR0)
+                  000084f4    00000008     rts430x_lc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
 
-.data      0    00002000    00000012     UNINITIALIZED
-                  00002000    00000012     master_keypad_main.obj (.data)
+.data      0    00002000    00000014     UNINITIALIZED
+                  00002000    00000014     master_keypad_main.obj (.data)
 
 .stack     0    00002f60    000000a0     UNINITIALIZED
                   00002f60    00000002     rts430x_lc_sd_eabi.lib : boot.c.obj (.stack)
@@ -246,9 +245,9 @@ MODULE SUMMARY
        Module                       code   ro data   rw data
        ------                       ----   -------   -------
     .\
-       master_keypad_main.obj       698    4         18     
+       master_keypad_main.obj       736    4         20     
     +--+----------------------------+------+---------+---------+
-       Total:                       698    4         18     
+       Total:                       736    4         20     
                                                             
     C:\ti\ccs1040\ccs\tools\compiler\ti-cgt-msp430_20.2.5.LTS\lib\rts430x_lc_sd_eabi.lib
        copy_decompress_lzss.c.obj   238    0         0      
@@ -286,20 +285,20 @@ MODULE SUMMARY
        Total:                       516    46        0      
                                                             
        Stack:                       0      0         160    
-       Linker Generated:            0      23        0      
+       Linker Generated:            0      24        0      
     +--+----------------------------+------+---------+---------+
-       Grand Total:                 1214   73        178    
+       Grand Total:                 1252   74        180    
 
 
 LINKER GENERATED COPY TABLES
 
 __TI_cinit_table @ 00008010 records: 1, size/record: 8, table size: 8
-	.data: load addr=00008008, load size=00000007 bytes, run addr=00002000, run size=00000012 bytes, compression=lzss
+	.data: load addr=00008000, load size=00000008 bytes, run addr=00002000, run size=00000014 bytes, compression=lzss
 
 
 LINKER GENERATED HANDLER TABLE
 
-__TI_handler_table @ 00008000 records: 2, size/record: 4, table size: 8
+__TI_handler_table @ 00008008 records: 2, size/record: 4, table size: 8
 	index: 0, handler: __TI_decompress_lzss
 	index: 1, handler: __TI_decompress_none
 
@@ -386,7 +385,7 @@ address   name
 00000672  BAKMEM9                                
 00000673  BAKMEM9_H                              
 00000672  BAKMEM9_L                              
-00008478  C$$EXIT                                
+0000849e  C$$EXIT                                
 000002ee  CAPTIOCTL                              
 000002ef  CAPTIOCTL_H                            
 000002ee  CAPTIOCTL_L                            
@@ -465,7 +464,7 @@ address   name
 00000190  CSCTL8                                 
 00000191  CSCTL8_H                               
 00000190  CSCTL8_L                               
-00008484  EUSCI_B1_I2C_ISR                       
+000084aa  EUSCI_B1_I2C_ISR                       
 000001a0  FRCTL0                                 
 000001a1  FRCTL0_H                               
 000001a0  FRCTL0_L                               
@@ -493,7 +492,7 @@ address   name
 000006c0  ICCSC                                  
 000006c1  ICCSC_H                                
 000006c0  ICCSC_L                                
-000084c4  ISR_TB0_CCR0                           
+000084ea  ISR_TB0_CCR0                           
 000004c4  MAC                                    
 000004da  MAC32H                                 
 000004db  MAC32H_H                               
@@ -1221,12 +1220,12 @@ address   name
 000000a0  __STACK_SIZE                           
 00008010  __TI_CINIT_Base                        
 00008018  __TI_CINIT_Limit                       
-00008000  __TI_Handler_Table_Base                
-00008008  __TI_Handler_Table_Limit               
-000084ce  __TI_ISR_TRAP                          
-000081fc  __TI_auto_init_nobinit_nopinit_hold_wdt
+00008008  __TI_Handler_Table_Base                
+00008010  __TI_Handler_Table_Limit               
+000084f4  __TI_ISR_TRAP                          
+00008222  __TI_auto_init_nobinit_nopinit_hold_wdt
 00008018  __TI_decompress_lzss                   
-000083b8  __TI_decompress_none                   
+000083de  __TI_decompress_none                   
 0000ffce  __TI_int22                             
 0000ffd0  __TI_int23                             
 0000ffd2  __TI_int24                             
@@ -1255,33 +1254,34 @@ ffffffff  __TI_pprof_out_hndl
 ffffffff  __TI_prof_data_size                    
 ffffffff  __TI_prof_data_start                   
 ffffffff  __c_args__                             
-00008378  __memcpy_far                           
-000084a8  _c_int00_noargs                        
+0000839e  __memcpy_far                           
+000084ce  _c_int00_noargs                        
 0000fffe  _reset_vector                          
 00002f60  _stack                                 
-00008482  _system_post_cinit                     
-0000847e  _system_pre_init                       
-00008478  abort                                  
-000082d0  checkKeypad                            
-00008326  configI2C                              
-00008456  configKeypad                           
-000083f4  configTimer                            
+000084a8  _system_post_cinit                     
+000084a4  _system_pre_init                       
+0000849e  abort                                  
+000082f6  checkKeypad                            
+0000834c  configI2C                              
+0000847c  configKeypad                           
+0000841a  configTimer                            
 00002000  dataSent                               
 00002004  dataToSendI2C                          
-0000841e  delay                                  
-0000843e  enableTimerInterrupt                   
+00008444  delay                                  
+00008464  enableTimerInterrupt                   
 00008000  fram_rw_start                          
 00008000  fram_rx_start                          
-0000200a  lastPasscodeEntry                      
+00002006  lastLCDDataSentI2C                     
+0000200c  lastPasscodeEntry                      
 00002002  ledSlaveEnabled                        
-00008266  main                                   
-00008186  passcode                               
-00002008  passcodeCounter                        
-00002006  passcodeEnteredCorrectly               
-0000200c  passcodeFirstEntry                     
-0000200e  passcodeSecondEntry                    
-00002010  passcodeThirdEntry                     
-0000846c  resetLCD                               
+0000828c  main                                   
+000081ac  passcode                               
+0000200a  passcodeCounter                        
+00002008  passcodeEnteredCorrectly               
+0000200e  passcodeFirstEntry                     
+00002010  passcodeSecondEntry                    
+00002012  passcodeThirdEntry                     
+00008492  resetLCD                               
 00008106  send_i2c                               
 
 
@@ -2199,42 +2199,43 @@ address   name
 00002000  dataSent                               
 00002002  ledSlaveEnabled                        
 00002004  dataToSendI2C                          
-00002006  passcodeEnteredCorrectly               
-00002008  passcodeCounter                        
-0000200a  lastPasscodeEntry                      
-0000200c  passcodeFirstEntry                     
-0000200e  passcodeSecondEntry                    
-00002010  passcodeThirdEntry                     
+00002006  lastLCDDataSentI2C                     
+00002008  passcodeEnteredCorrectly               
+0000200a  passcodeCounter                        
+0000200c  lastPasscodeEntry                      
+0000200e  passcodeFirstEntry                     
+00002010  passcodeSecondEntry                    
+00002012  passcodeThirdEntry                     
 00002f60  _stack                                 
 00003000  __STACK_END                            
-00008000  __TI_Handler_Table_Base                
 00008000  fram_rw_start                          
 00008000  fram_rx_start                          
-00008008  __TI_Handler_Table_Limit               
+00008008  __TI_Handler_Table_Base                
 00008010  __TI_CINIT_Base                        
+00008010  __TI_Handler_Table_Limit               
 00008018  __TI_CINIT_Limit                       
 00008018  __TI_decompress_lzss                   
 00008106  send_i2c                               
-00008186  passcode                               
-000081fc  __TI_auto_init_nobinit_nopinit_hold_wdt
-00008266  main                                   
-000082d0  checkKeypad                            
-00008326  configI2C                              
-00008378  __memcpy_far                           
-000083b8  __TI_decompress_none                   
-000083f4  configTimer                            
-0000841e  delay                                  
-0000843e  enableTimerInterrupt                   
-00008456  configKeypad                           
-0000846c  resetLCD                               
-00008478  C$$EXIT                                
-00008478  abort                                  
-0000847e  _system_pre_init                       
-00008482  _system_post_cinit                     
-00008484  EUSCI_B1_I2C_ISR                       
-000084a8  _c_int00_noargs                        
-000084c4  ISR_TB0_CCR0                           
-000084ce  __TI_ISR_TRAP                          
+000081ac  passcode                               
+00008222  __TI_auto_init_nobinit_nopinit_hold_wdt
+0000828c  main                                   
+000082f6  checkKeypad                            
+0000834c  configI2C                              
+0000839e  __memcpy_far                           
+000083de  __TI_decompress_none                   
+0000841a  configTimer                            
+00008444  delay                                  
+00008464  enableTimerInterrupt                   
+0000847c  configKeypad                           
+00008492  resetLCD                               
+0000849e  C$$EXIT                                
+0000849e  abort                                  
+000084a4  _system_pre_init                       
+000084a8  _system_post_cinit                     
+000084aa  EUSCI_B1_I2C_ISR                       
+000084ce  _c_int00_noargs                        
+000084ea  ISR_TB0_CCR0                           
+000084f4  __TI_ISR_TRAP                          
 0000ffce  __TI_int22                             
 0000ffd0  __TI_int23                             
 0000ffd2  __TI_int24                             
@@ -2265,4 +2266,4 @@ ffffffff  __TI_prof_data_size
 ffffffff  __TI_prof_data_start                   
 ffffffff  __c_args__                             
 
-[975 symbols]
+[976 symbols]
