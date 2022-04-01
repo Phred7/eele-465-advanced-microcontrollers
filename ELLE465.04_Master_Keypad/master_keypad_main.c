@@ -1,8 +1,9 @@
 #include <msp430.h> 
 
-/** W. Ward
- *  03/18/2022
- *  I2C Main with Keypad
+/*
+ * I2C Main Keypad. MSP2310
+ * Walker Ward and Haley Ketteler
+ * 3/31/2022
  */
 
 int dataSent = 0;
@@ -18,6 +19,9 @@ unsigned int passcodeFirstEntry = 0x00;
 unsigned int passcodeSecondEntry = 0x00;
 unsigned int passcodeThirdEntry = 0x00;
 
+/*
+ * Configures I2C pins and registers for master device on UCB1
+ */
 void configI2C(void) {
     //-- Config. I2C Master
     //-- Put eUSCI_B0 into sw reset
@@ -43,7 +47,9 @@ void configI2C(void) {
     return;
 }
 
-
+/*
+ * Configures the pins and registers for keypad (with polling).
+ */
 void configKeypad(void){
     //-- Setup Ports for Keypad. 3.7 is LeftMost
     P3DIR &= ~0b11111111;   // Clear P3.0-3.7 for input
@@ -52,7 +58,9 @@ void configKeypad(void){
     return;
 }
 
-
+/*
+ * Configures the TB0 registers.
+ */
 void configTimer(void){
     // Timers
     // TB0
@@ -67,6 +75,9 @@ void configTimer(void){
 }
 
 
+/*
+ * Enables TB0 overflow interrupt with a compareValue defined by timerCompareValue.
+ */
 void enableTimerInterrupt(int timerCompareValue){
     // IRQs
     // Timer Compare IRQ
@@ -75,21 +86,27 @@ void enableTimerInterrupt(int timerCompareValue){
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
 }
 
-
+/*
+ * Disable TB0 overflow interrupt
+ */
 void disableTimerInterrupt() {
     TB0CCTL0 &= ~CCIE;              // Disable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
     return;
 }
 
-
+/*
+ * Makes the CPU wait until a number of iterations are complete.
+ */
 int delay(int delay){
     int zzz;
     for(zzz=0; zzz<delay; zzz++){}
     return 0;
 }
 
-
+/*
+ * Controls data transmission and timing for I2C.
+ */
 int send_i2c(unsigned int dataToSend) {
 
     dataToSendI2C = dataToSend;
@@ -103,17 +120,22 @@ int send_i2c(unsigned int dataToSend) {
         }
     }
 
-    if (dataToSendI2C != lastLCDDataSentI2C) {
-        lastLCDDataSentI2C = dataToSendI2C;
-        UCB1I2CSA = 0x0069;
-        UCB1CTLW0 |= UCTXSTT;
-        while (UCB0CTLW0 & UCTXSTP);
-        delay(15);
-        UCB1I2CSA = 0x0069;
-        UCB1CTLW0 |= UCTXSTT;
-        while (UCB0CTLW0 & UCTXSTP);
-        delay(15);
-    }
+//    if (dataToSendI2C != lastLCDDataSentI2C) {
+//        lastLCDDataSentI2C = dataToSendI2C;
+//        UCB1I2CSA = 0x0069;
+//        UCB1CTLW0 |= UCTXSTT;
+//        while (UCB0CTLW0 & UCTXSTP);
+//        delay(15);
+//        UCB1I2CSA = 0x0069;
+//        UCB1CTLW0 |= UCTXSTT;
+//        while (UCB0CTLW0 & UCTXSTP);
+//        delay(15);
+//    }
+
+    UCB1I2CSA = 0x0069;
+    UCB1CTLW0 |= UCTXSTT;
+    while (UCB0CTLW0 & UCTXSTP);
+    delay(15);
 
     dataToSendI2C = 0x00;
 
@@ -121,7 +143,9 @@ int send_i2c(unsigned int dataToSend) {
     return 0;
 }
 
-
+/*
+ * Gets the current value on the keypad. Implements polling.
+ */
 unsigned int checkKeypad() {
     int buttonValue = 0b0;
 
@@ -146,6 +170,9 @@ unsigned int checkKeypad() {
     return buttonValue;
 }
 
+/*
+ * Sends a reset condition to the LED Bar via I2C
+ */
 int resetLEDs(void) {
     // *
     send_i2c(0x018);
@@ -153,13 +180,18 @@ int resetLEDs(void) {
 }
 
 
+/*
+ * Sends a reset condition to the LCD via I2C
+ */
 int resetLCD(void) {
     // #
     send_i2c(0x012);
     return 0;
 }
 
-
+/*
+ * Controls flow until the passcode is entered correctly.
+ */
 int passcode() {
     unsigned int keypadValue = checkKeypad();
     if (keypadValue != 0x00 && lastPasscodeEntry == 0x00) {
@@ -181,7 +213,7 @@ int passcode() {
                 passcodeEnteredCorrectly = 1;
             }
             passcodeCounter = 0;
-            resetLCD();
+//            resetLCD();
             break;
         }
     }

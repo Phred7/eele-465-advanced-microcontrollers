@@ -1,5 +1,10 @@
 #include <msp430.h> 
 
+/*
+ * Slave LED Bar. MSP2310
+ * Walker Ward and Haley Ketteler
+ * 3/31/2022
+ */
 
 unsigned int receivedData = 0x00;
 unsigned int patternData = 0x00;
@@ -13,6 +18,9 @@ unsigned int patternBMask = 0x00;
 unsigned int patternCMask = 0x07F;
 unsigned int patternDMask = 0x08;
 
+/*
+ * Configures I2C pins and registers for slave device on UCB0 with address 42h
+ */
 void configI2C(void) {
 
     P1SEL1 &= ~BIT3;      // P1.3 SCL
@@ -40,7 +48,9 @@ void configI2C(void) {
     return;
 }
 
-
+/*
+ * Configures the pins and registers for keypad (with polling).
+ */
 void configTimer(void){
     // Timers
     // TB0
@@ -62,7 +72,9 @@ void configTimer(void){
     return;
 }
 
-
+/*
+ * Enables TB0 overflow interrupt with a compareValue defined by timerCompareValue.
+ */
 void enableTimerInterrupt(unsigned int timerCompareValue){
     // IRQs
     // Timer Compare IRQ
@@ -72,7 +84,9 @@ void enableTimerInterrupt(unsigned int timerCompareValue){
     return;
 }
 
-
+/*
+ * Disable TB0 overflow interrupt
+ */
 void disableTimerInterrupt() {
     TB0CCTL0 &= ~CCIE;              // Disable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
@@ -80,6 +94,7 @@ void disableTimerInterrupt() {
 }
 
 /*
+ * Mirrors a nibble and returns it.
  * Adapted from StackOverflow's 'Mike DeSimone'
  * https://stackoverflow.com/questions/4245936/mirror-bits-of-a-32-bit-word
  */
@@ -91,7 +106,9 @@ unsigned int reverseFourBitInt(unsigned int fourBitInt) {
     return x >> 4;
 }
 
-
+/*
+ * Uses the mask to write the correct values to each pin for the LED bar on a 2310.
+ */
 void writeToLEDBar(unsigned int mask) {
     static const unsigned int P1Mask = 0b11110011;
     static const unsigned int P2Mask = 0b00001100;
@@ -102,7 +119,9 @@ void writeToLEDBar(unsigned int mask) {
     return;
 }
 
-
+/*
+ * Handles the reset condition for this device.
+ */
 void reset(void) {
     disableTimerInterrupt();
     writeToLEDBar(0x00);
