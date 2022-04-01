@@ -5,6 +5,7 @@
  *  I2C Main
  */
 
+unsigned int keypadValue = 0x00;
 int dataSent = 0;
 unsigned int dataToSendI2C[2] = {0,0};
 int n = 0;
@@ -185,10 +186,10 @@ int main(void)
 
     configADC();
 
- /*   P3IE |= 0x0F0;
-    P3IES &= ~0x0F0;
+    P3IE |= 0x0FF;
+    P3IES &= ~0x0FF;
     P3IFG &= ~0x0FF;
-*/
+
     configKeypad();
 
     __enable_interrupt();
@@ -312,3 +313,23 @@ __interrupt void ISR_TB0_CCR0(void) {
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
 }
 //-- END TB0 ISR
+
+#pragma vector = PORT3_VECTOR
+__interrupt void ISR_P3_Keypad(void) {
+    int buttonValue = 0b0;
+    buttonValue = P3IN;     // Move input to variable
+
+    P3DIR &= ~0b00001111;   // Set columns as input
+    P3OUT &= ~0b00001111;   // Set pull-down resistors for rows
+    P3DIR |=  0b11110000;   // Set rows as outputs
+    P3OUT |=  0b11110000;   // Set rows high
+
+    buttonValue = buttonValue & P3IN;   // Add both nibbles together
+
+    keypadValue = buttonValue;
+
+    configKeypad();
+
+    P3IFG &= ~0x0FF;
+}
+
