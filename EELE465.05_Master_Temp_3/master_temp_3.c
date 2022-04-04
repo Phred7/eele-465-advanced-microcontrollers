@@ -228,7 +228,7 @@ int main(void)
 
     send_i2c();
 
-//    float readings[n];
+    float readings[n];
 //    int i;
 //    for (i = 0; i < n; i++) {
 //        readings[i] = 0.0;
