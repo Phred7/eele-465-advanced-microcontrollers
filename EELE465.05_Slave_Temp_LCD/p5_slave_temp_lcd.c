@@ -6,46 +6,45 @@
  * Prints updated temperature values to LCD when received from Master.
  *
  *      Port Definitions
- *      P1.7 - DB7
- *      P1.6 - DB6
- *      P1.5 - DB5
- *      P1.4 - DB4
- *      P4.7 - RS       Data/Instruction Register Select
- *      P4.6 - E        Enable Signal
+ *      P1.7 - DB7 (Pin 14 on LCD)
+ *      P1.6 - DB6 (Pin 13 on LCD)
+ *      P1.5 - DB5 (Pin 12 on LCD)
+ *      P1.4 - DB4 (Pin 11 on LCD)
+ *      P4.7 - RS  (Pin 4 on LCD)     Data/Instruction Register Select
+ *      P4.6 - E   (Pin 6 on LCD)     Enable Signal
  */
-int DelayFlag = 0;          // Delay flag {"1", Hold Delay; "0", Ignore Delay}
-int InputStatus = 0;        // {"0", No new input; "1", New value from Master}
-int LastStatus = 0;         // Keep track of last button press
-unsigned int InValue = 0x22;         // "A" in ASCII -> Button value from Keypad
-unsigned int recievedData = 0x00;
-unsigned int recievedData2 = 0x00;
-int recievedDataFlag = 0;
+    int DelayFlag = 0;          // Delay flag {"1", Hold Delay; "0", Ignore Delay}
+    unsigned int InValue[2] = {0,0};         // Input value from Master
+    unsigned int LCDtempValues[6] = {0,0,0,0,0,0};  // Values to send to LCD {K1,K2,K3,C1,C2,C3}
+    int receivedDataFlag = 0;           // {"0", No new input; "1", New value from Master}
+    int nFlag = 0;                      // {"0", Receive temp data; "1", Set n value}
+    int resetTempDisp(void);
 
-int LatchClock (void){
-    P4OUT |= BIT6;          // Set P2.6 - Pin E
-    _delay_cycles(1000);    // Delay 1000 clock cycles
-    P4OUT &= ~BIT6;         // Clear P2.6 - Pin E
+    int DataDelay(int TimerCount){
+        DelayFlag = 1;
 
-    return(0);
-}
+        TB0CCR0 = TimerCount;            // Seconds input times counter compare value for 1 second
 
-int DataDelay(int TimerCount){
-    DelayFlag = 1;
+        TB0CCTL0 |= CCIE;             // Enable TB0 Overflow IRQ
+        TB0CCTL0 &= ~CCIFG;           // Clear CCR0 flag
 
-    TB0CCR0 = TimerCount;            // Seconds input times counter compare value for 1 second
+        while(DelayFlag == 1){};         // Loop until delay has finished
 
-    TB0CCTL0 |= CCIE;             // Enable TB0 Overflow IRQ
-    TB0CCTL0 &= ~CCIFG;           // Clear CCR0 flag
+        TB0CCTL0 &= ~CCIE;              // Disable TB0 Overflow IRQ
 
-    while(DelayFlag == 1){};         // Loop until delay has finished
+        return(0);
+    }
 
-    TB0CCTL0 &= ~CCIE;              // Disable TB0 Overflow IRQ
+    int LatchClock (void){
+        P3OUT |= BIT6;          // Set P2.6 - Pin E
+        DataDelay(15);
+        P3OUT &= ~BIT6;         // Clear P2.6 - Pin E
 
-    return(0);
-}
+        return(0);
+    }
 
 int InitFunctionSet(void){
-    P4OUT &= ~BIT7;         // Clear RS bit
+    P3OUT &= ~BIT7;         // Clear RS bit
     P1OUT |= BIT4 | BIT5;
     P1OUT &= -(BIT6|BIT7);
 
@@ -67,9 +66,9 @@ int SendDataLCD(int RSflag, int DataByte){
     int LowerByte = 0b0000;
 
     if (RSflag == 1){
-      P4OUT |= BIT7;          // Set RS bit (Indicates Data send)
+      P3OUT |= BIT7;          // Set RS bit (Indicates Data send)
     } else {
-        P4OUT &= ~BIT7;       // Clear RS bit (Indicates Instruction send)
+        P3OUT &= ~BIT7;       // Clear RS bit (Indicates Instruction send)
     }
 
     if ((DataByte & 0b10000000) == 0){
@@ -102,7 +101,7 @@ int SendDataLCD(int RSflag, int DataByte){
     LatchClock();
 
     if (RSflag == 1){
-        P4OUT &= ~BIT7;         // Clear RS bit
+        P3OUT &= ~BIT7;         // Clear RS bit
     }
 
     DataDelay(800);
@@ -158,9 +157,12 @@ int CheckInputVal(int ButtonValue){
                SendDataLCD(1,0b00101010);
                break;
            case 0x12:                  // "#"
-               SendDataLCD(1,0b00100011);
+               SendDataLCD(0,0b00000001);  // Display clear, set DDRAM to 00h
+               SendDataLCD(0,0b10000000);  // Set DDRAM Location to 00h
+               SendDataLCD(0,0b00000010);  // Move cursor to home position
+               SendDataLCD(0,0b00001111);  // Display on, Turn display on and set cursor style
+               resetTempDisp();
                break;
-
            default:
                break;
            }
@@ -169,7 +171,7 @@ int CheckInputVal(int ButtonValue){
 }
 
 int SetDDRAM(int Row, int Col){
-    P4OUT &= ~BIT7;         // Clear RS bit
+    P3OUT &= ~BIT7;         // Clear RS bit
 
     // Set upper nibble
     if (Row == 0){
@@ -191,7 +193,9 @@ int SetDDRAM(int Row, int Col){
     return(0);
 }
 
-int InitializeTempDisp(void){
+int resetTempDisp(void){
+    SendDataLCD(0,0b00000001);  // Display clear, set DDRAM to 00h
+
     SetDDRAM(0,0);
     SendDataLCD(1,0b01000101);  // E
     SendDataLCD(1,0b01101110);  // n
@@ -218,12 +222,15 @@ int InitializeTempDisp(void){
     SendDataLCD(1,0b11011111);  // Degree
     SendDataLCD(1,0b01000011);  // C
 
+    SetDDRAM(0,8);      // Set Cursor location to n location
+
+    nFlag = 1;
+
     return 0;
 }
 
 unsigned int ConvDec2Hex(int Number){
     unsigned int HexNumber = 0;
-
     switch(Number){
        case 0:
            HexNumber = 0x14;
@@ -261,62 +268,48 @@ unsigned int ConvDec2Hex(int Number){
     return HexNumber;
 }
 
-int TestSend(float ADCval){
-    int Digit1;
-    int Digit2;
-    int Digit3;
-    int KelVal;
-    int KelVal1;
-    int KelVal2;
-    int KelVal3;
+void ConvTempInput(){
+    float kelvinConv = 0.0;
 
-    KelVal = ADCval + 273.15;
+    kelvinConv = 273.15 + InValue[0] + InValue[1]*0.1;
 
-    // Most significant digit
-    Digit1 = ADCval/10;
-    KelVal1 = KelVal/100;
+    LCDtempValues[0] = kelvinConv/100;
+    LCDtempValues[1] = (kelvinConv - LCDtempValues[0]*100)/10;
+    LCDtempValues[2] = kelvinConv - 100*LCDtempValues[0] - 10*LCDtempValues[1];
+    LCDtempValues[3] = InValue[0]/10;
+    LCDtempValues[4] = InValue[0] - 10*LCDtempValues[3];
+    LCDtempValues[5] = InValue[1];        // Save decimal value to third digit value
 
-    // Middle digit
-    ADCval = ADCval - 10*Digit1;
-    Digit2 = ADCval;
-    KelVal = KelVal - 100*KelVal1;
-    KelVal2 = KelVal/10;
+    // Send data to LCD
+     SetDDRAM(1,4);
+     CheckInputVal(LCDtempValues[0]);
+     CheckInputVal(LCDtempValues[1]);
+     CheckInputVal(LCDtempValues[2]);
 
-    // Least significant digit
-    ADCval = ADCval - Digit2;
-    Digit3 = 10 * ADCval;
-    KelVal = KelVal - 10*KelVal2;
-    KelVal3 = KelVal;
+     SetDDRAM(1,10);
+     CheckInputVal(LCDtempValues[3]);          // Push value to LCD
+     CheckInputVal(LCDtempValues[4]);
 
+     SetDDRAM(1,13);
+     CheckInputVal(LCDtempValues[5]);
 
-    // Push Values to LCD
-    SetDDRAM(1,4);
-    KelVal1 = ConvDec2Hex(KelVal1);
-    CheckInputVal(KelVal1);
-    KelVal2 = ConvDec2Hex(KelVal2);
-    CheckInputVal(KelVal2);
-    KelVal3 = ConvDec2Hex(KelVal3);
-    CheckInputVal(KelVal3);
+     SetDDRAM(0,8);
 
-    SetDDRAM(1,10);
-    Digit1 = ConvDec2Hex(Digit1);
-    CheckInputVal(Digit1);          // Push value to LCD
+     receivedDataFlag = 0;
 
-    Digit2 = ConvDec2Hex(Digit2);
-    SetDDRAM(1,11);
-    CheckInputVal(Digit2);
-
-    SetDDRAM(1,13);
-    Digit3 = ConvDec2Hex(Digit3);
-    CheckInputVal(Digit3);
-
-    SetDDRAM(0,8);
-
-    InputStatus = 0;
-
-    return 0;
+    return;
 }
 
+void convNvalue(void){
+    SetDDRAM(0,8);      // Set location to n value
+    CheckInputVal(InValue[0]);  // Send first received value to LCD
+
+    SetDDRAM(1,4);      // Move to kelvin temp location
+
+    nFlag = 0;
+
+    return;
+}
 void configI2C(void) {
     P4SEL1 &= ~BIT7;            // P4.7 = SCL
     P4SEL0 |= BIT7;
@@ -348,6 +341,8 @@ int main(void)
 //-- Initialization
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
+    configI2C();
+
     //-- Setup Ports
     P1DIR |= BIT7;              // Set P1.7 as an output
     P1OUT &= ~BIT7;             // Clear P1.7
@@ -357,10 +352,10 @@ int main(void)
     P1OUT &= ~BIT5;             // Clear P1.5
     P1DIR |= BIT4;              // Set P1.4 as an output
     P1OUT &= ~BIT4;             // Clear P1.4
-    P4DIR |= BIT7;              // Set P2.7 as an output
-    P4OUT &= ~BIT7;             // Clear P2.7
-    P4DIR |= BIT6;              // Set P2.6 as an output
-    P4OUT &= ~BIT6;             // Clear P2.6
+    P3DIR |= BIT7;              // Set P3.7 as an output
+    P3OUT &= ~BIT7;             // Clear P3.7
+    P3DIR |= BIT6;              // Set P3.6 as an output
+    P3OUT &= ~BIT6;             // Clear P3.6
 
     // Setup LEDs
     P1DIR |= BIT0;              // Set LED1 as an output
@@ -368,38 +363,23 @@ int main(void)
     P6DIR |= BIT6;              // Set LED2 as an output
     P6OUT &= ~BIT6;             // Turn off LED2 initially
 
-    // Setup S1
-    P4DIR &= ~BIT1;
-    P4REN |= BIT1;
-    P4OUT |= BIT1;
-    P4IES |= BIT1;
-
     PM5CTL0 &= ~LOCKLPM5;      // Turn on GPIO
-
-    configI2C();
 
     //-- Setup Timer
     TB0CTL |= TBCLR;            // Clear timer and dividers
-    TB0CTL |= TBSSEL__SMCLK;     // Source = SMCLK
+    TB0CTL |= TBSSEL__SMCLK;    // Source = SMCLK
     TB0CTL |= MC__UP;           // Mode = Up
     TB0CTL |= ID__8;            // Divide by 8
     TB0EX0 |= TBIDEX__8;        // Divide clock by 8 again
     TB0CCR0 = 32791;            // CCR0 = 32791
 
     //-- Setup Timer Overflow IRQ
-    TB0CCTL0 &= ~CCIE;           // Disable TB0 Overflow IRQ
-    TB0CCTL0 &= ~CCIFG;           // Clear CCR0 flag
+    TB0CCTL0 &= ~CCIE;          // Disable TB0 Overflow IRQ
+    TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
     __enable_interrupt();       // Enable Maskable IRQs
-
-    //-- Setup Button IRQ
-    P4IFG &= ~BIT1;
-    P4IE |= BIT1;
-    __enable_interrupt();
 
     //-- Setup Variables
     int i = 0;                  // Loop Counter
-
-//    int CursorLocation = 0;     // Keep track of position on LCD
 
 //-- Initialize LCD
     DataDelay(820);                // Initial delay for LCD startup
@@ -424,25 +404,21 @@ int main(void)
 
     SetDDRAM(0,0);  // Set DDRAM Location to 00h
 
-    InitializeTempDisp();
-
+    resetTempDisp();
 
 //-- Main Loop
     while(1){
-
-        if (InputStatus == 1){
+        if (receivedDataFlag == 1){
             P1OUT &= ~BIT0;     // Turn off LED1
-            TestSend(23.5);
- //           CursorLocation++;
+            if(nFlag == 1){
+                convNvalue();
+            } else {
+                ConvTempInput();
+            }
             DataDelay(32000);           // 16395 per second
-            TestSend(39.2);
-            DataDelay(32000);
-            TestSend(90.0);
-            DataDelay(8000);
         } else {
             P1OUT |= BIT0;          // Turn on LED1
         }
-
     }
     return(0);
 }
@@ -450,32 +426,20 @@ int main(void)
 //-- Interrupt Service Routines
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void ISR_TB0_CCR0(void){
-
     DelayFlag = 0;
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 Flag
-
 }
 
 //-- Service I2C
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
-    if (recievedDataFlag == 0) {
-        recievedData = UCB1RXBUF;
-        recievedDataFlag = 1;
+    if (receivedDataFlag == 0) {
+        InValue[0] = UCB1RXBUF;
+        receivedDataFlag = 1;
     } else {
-        recievedData2 = UCB1RXBUF;
-        recievedDataFlag = 0;
+        InValue[1] = UCB1RXBUF;
+        receivedDataFlag = 0;
     }
-
     UCB1CTLW1 &= ~UCRXIFG0;
     return;
-}
-//-- END EUSCI_B0_I2C_ISR
-
-#pragma vector = PORT4_VECTOR
-__interrupt void ISR_Port4_S1(void){
-
-    InputStatus = 1;
-
-    P4IFG &= ~BIT1;
 }
