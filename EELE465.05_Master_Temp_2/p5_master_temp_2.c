@@ -68,6 +68,7 @@ void disableTimerInterrupt() {
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
     return;
 }
+
 void configADC(void){
     P1SEL1 |= BIT2;                 // Configure A2 ADC
     P1SEL0 |= BIT2;
