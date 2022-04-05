@@ -101,26 +101,26 @@ void configKeypad(void){
     return;
 }
 
-unsigned int checkKeypad() {
-    int buttonValue = 0b0;
-
-    buttonValue = P3IN;     // Move input to variable
-
-    if (buttonValue == 0b0) {
-        return 0x00;
-    }
-
-    P3DIR &= ~0b00001111;   // Set columns as input
-    P3OUT &= ~0b00001111;   // Set pull-down resistors for rows
-    P3DIR |=  0b11110000;   // Set rows as outputs
-    P3OUT |=  0b11110000;   // Set rows high
-
-    buttonValue = buttonValue & P3IN;   // Add both nibbles together
-
-    configKeypad();
-
-    return buttonValue;
-}
+//unsigned int checkKeypad() {
+//    int buttonValue = 0b0;
+//
+//    buttonValue = P3IN;     // Move input to variable
+//
+//    if (buttonValue == 0b0) {
+//        return 0x00;
+//    }
+//
+//    P3DIR &= ~0b00001111;   // Set columns as input
+//    P3OUT &= ~0b00001111;   // Set pull-down resistors for rows
+//    P3DIR |=  0b11110000;   // Set rows as outputs
+//    P3OUT |=  0b11110000;   // Set rows high
+//
+//    buttonValue = buttonValue & P3IN;   // Add both nibbles together
+//
+//    configKeypad();
+//
+//    return buttonValue;
+//}
 
 int delay(int delay){
     int zzz;
@@ -234,30 +234,30 @@ int main(void)
 //        readings[i] = 0.0;
 //    }
 
-//    enableTimerInterrupt(6244);
-//
-//    while(numberOfReadings < n) {
-//        if(newReading == 1) {
-//            readings[numberOfReadings] = newestReading;
-//            newReading = 0;
-//        }
-//    }
-//
-//    while(1) {
-//        if(newReading == 1) {
-//            int k;
-//            for(k=0;k<n;k++) {
-//                if(k == (n-1)) {
-//                    readings[k] = 0.0;
-//                } else {
-//                    readings[k] = readings[k+1];
-//                }
-//            }
-//            newReading = 0;
-//        }
-//        movingAverage = getMovingAverage(readings);
-//        convertTemp(movingAverage);
-//    }
+    enableTimerInterrupt(6244);
+
+    while(numberOfReadings < n) {
+        if(newReading == 1) {
+            readings[numberOfReadings] = newestReading;
+            newReading = 0;
+        }
+    }
+
+    while(1) {
+        if(newReading == 1) {
+            int k;
+            for(k=0;k<n;k++) {
+                if(k == (n-1)) {
+                    readings[k] = 0.0;
+                } else {
+                    readings[k] = readings[k+1];
+                }
+            }
+            newReading = 0;
+        }
+        movingAverage = getMovingAverage(readings);
+        convertTemp(movingAverage);
+    }
 
     while(1){};
     return 0;
