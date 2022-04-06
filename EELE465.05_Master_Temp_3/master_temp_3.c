@@ -102,26 +102,26 @@ void configKeypad(void){
     return;
 }
 
-//unsigned int checkKeypad() {
-//    int buttonValue = 0b0;
-//
-//    buttonValue = P3IN;     // Move input to variable
-//
-//    if (buttonValue == 0b0) {
-//        return 0x00;
-//    }
-//
-//    P3DIR &= ~0b00001111;   // Set columns as input
-//    P3OUT &= ~0b00001111;   // Set pull-down resistors for rows
-//    P3DIR |=  0b11110000;   // Set rows as outputs
-//    P3OUT |=  0b11110000;   // Set rows high
-//
-//    buttonValue = buttonValue & P3IN;   // Add both nibbles together
-//
-//    configKeypad();
-//
-//    return buttonValue;
-//}
+unsigned int checkKeypad() {
+    int buttonValue = 0b0;
+
+    buttonValue = P3IN;     // Move input to variable
+
+    if (buttonValue == 0b0) {
+        return 0x00;
+    }
+
+    P3DIR &= ~0b00001111;   // Set columns as input
+    P3OUT &= ~0b00001111;   // Set pull-down resistors for rows
+    P3DIR |=  0b11110000;   // Set rows as outputs
+    P3OUT |=  0b11110000;   // Set rows high
+
+    buttonValue = buttonValue & P3IN;   // Add both nibbles together
+
+    configKeypad();
+
+    return buttonValue;
+}
 
 int delay(int delay){
     int zzz;
@@ -230,34 +230,22 @@ int main(void)
 
     send_i2c();
 
-<<<<<<< HEAD
     float readings[10];
     int i;
     for (i = 0; i < 10; i++) {
         readings[i] = 0.0;
     }
-=======
-    float readings[n];
-//    int i;
-//    for (i = 0; i < n; i++) {
-//        readings[i] = 0.0;
-//    }
->>>>>>> e338e1f1d59425d5ba77addf69675345027c8498
 
     enableTimerInterrupt(6244);
 
     while(numberOfReadings < n) {
         if(newReading == 1) {
             readings[numberOfReadings] = newestReading;
-<<<<<<< HEAD
             numberOfReadings++;
-=======
->>>>>>> e338e1f1d59425d5ba77addf69675345027c8498
             newReading = 0;
         }
     }
 
-<<<<<<< HEAD
     numberOfReadings = n + 1;
 
     while(1) {
@@ -267,16 +255,6 @@ int main(void)
                 readings[k] = readings[k+1];
                 if (k == (n-1)) {
                     readings[k] = newestReading;
-=======
-    while(1) {
-        if(newReading == 1) {
-            int k;
-            for(k=0;k<n;k++) {
-                if(k == (n-1)) {
-                    readings[k] = 0.0;
-                } else {
-                    readings[k] = readings[k+1];
->>>>>>> e338e1f1d59425d5ba77addf69675345027c8498
                 }
             }
             newReading = 0;
@@ -367,4 +345,3 @@ __interrupt void ISR_P3_Keypad(void) {
 
     P3IFG &= ~0x0FF;
 }
-
