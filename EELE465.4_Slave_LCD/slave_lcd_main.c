@@ -48,7 +48,7 @@ int main(void) {
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
     recievedData = UCB1RXBUF;
-    P1OUT &= ~BIT0;
+    P1OUT ^= BIT0;
     UCB1CTLW1 &= ~UCRXIFG0;
     return;
 }

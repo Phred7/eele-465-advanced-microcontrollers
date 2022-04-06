@@ -6,7 +6,7 @@
  */
 
 unsigned int keypadValue = 0x00;
-int dataSent = 0;
+unsigned int dataSent = 0;
 unsigned int dataToSendI2C[2] = {0,0};
 int n = 0;
 int numberOfReadings = 0;
@@ -15,6 +15,7 @@ unsigned int newestReading = 0;
 float movingAverage = 0.0;
 float celsiusTemp = 0.0;
 int dataTypeFlag = 0;           // {"0": n value, "1": temp data}
+unsigned int reset = 0;
 
 void configI2C(void) {
     //-- Config. I2C Master
@@ -132,6 +133,7 @@ int send_i2c(void) {
 
     UCB1CTLW0 |= UCTXSTT;
     while (UCB1CTLW0 & UCTXSTP);
+    P1OUT ^= BIT0;
 //    delay(15);
 
  //   dataToSendI2C = 0x00;
@@ -145,14 +147,14 @@ float getMovingAverage(float averageArray[]) {
     for(j=0; j<n; j++) {
         sumTotal += averageArray[j];
     }
-    return sumTotal;
+    return sumTotal / n;
 }
 
 float convertTemp(float averageTemp){
     unsigned int val1;
     unsigned int val2;
     float voltConvert;
-    voltConvert = (movingAverage - 2316.47)/14.5;
+    voltConvert = (159.65 - (0.0689 * averageTemp));
 
     // Above the decimal point
     val1 = voltConvert;
@@ -228,36 +230,38 @@ int main(void)
 
     send_i2c();
 
-    float readings[n];
-//    int i;
-//    for (i = 0; i < n; i++) {
-//        readings[i] = 0.0;
-//    }
+    float readings[10];
+    int i;
+    for (i = 0; i < 10; i++) {
+        readings[i] = 0.0;
+    }
 
-//    enableTimerInterrupt(6244);
-//
-//    while(numberOfReadings < n) {
-//        if(newReading == 1) {
-//            readings[numberOfReadings] = newestReading;
-//            newReading = 0;
-//        }
-//    }
-//
-//    while(1) {
-//        if(newReading == 1) {
-//            int k;
-//            for(k=0;k<n;k++) {
-//                if(k == (n-1)) {
-//                    readings[k] = 0.0;
-//                } else {
-//                    readings[k] = readings[k+1];
-//                }
-//            }
-//            newReading = 0;
-//        }
-//        movingAverage = getMovingAverage(readings);
-//        convertTemp(movingAverage);
-//    }
+    enableTimerInterrupt(6244);
+
+    while(numberOfReadings < n) {
+        if(newReading == 1) {
+            readings[numberOfReadings] = newestReading;
+            numberOfReadings++;
+            newReading = 0;
+        }
+    }
+
+    numberOfReadings = n + 1;
+
+    while(1) {
+        if(newReading == 1) {
+            unsigned int k;
+            for(k=0;k<n;k++) {
+                readings[k] = readings[k+1];
+                if (k == (n-1)) {
+                    readings[k] = newestReading;
+                }
+            }
+            newReading = 0;
+        }
+        movingAverage = getMovingAverage(readings);
+        convertTemp(movingAverage);
+    }
 
     while(1){};
     return 0;
@@ -269,6 +273,14 @@ int main(void)
 //-- Service I2C B1
 #pragma vector=EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
+//    if (reset == 1) {
+//        if (dataSent == 1) {
+//            reset = 0;
+//            dataTypeFlag = 0;
+//        }
+//        UCB1TXBUF = 0xFF;
+//        UCB1IFG &= ~UCTXIFG0;
+    //    } else
     if (dataSent == 2) {
         UCB1IFG &= ~UCTXIFG0;
         UCB1CTL1 |= UCTXSTP;
@@ -279,6 +291,9 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
                 UCB1TXBUF = n;
             } else {
                 UCB1TXBUF = 0xAA;
+                dataTypeFlag = 1;
+                P1OUT |= BIT0;
+                P6OUT |= BIT6;
             }
         } else {
             UCB1TXBUF = dataToSendI2C[dataSent];
@@ -302,7 +317,6 @@ __interrupt void ISR_TB0_CCR0(void) {
     newestReading = ADCMEM0;                // Read ADC value
 
     newReading = 1;
-    numberOfReadings++;
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
 }
 //-- END TB0 ISR
@@ -320,6 +334,12 @@ __interrupt void ISR_P3_Keypad(void) {
     buttonValue = buttonValue & P3IN;   // Add both nibbles together
 
     keypadValue = buttonValue;
+
+    if (keypadValue == 0x012) {
+        reset = 1;
+        P1OUT &= ~BIT0;
+        P6OUT &= ~BIT6;
+    }
 
     configKeypad();
 
