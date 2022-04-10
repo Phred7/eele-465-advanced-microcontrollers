@@ -1,21 +1,11 @@
 #include <msp430.h> 
 
-/** W. Ward and H. Ketteler
- *  03/29/2022
- *  I2C Main
- */
 
-unsigned int keypadValue = 0x00;
-unsigned int dataSent = 0;
-unsigned int dataToSendI2C[2] = {0,0};
-int n = 0;
-int numberOfReadings = 0;
-int newReading = 0;
-unsigned int newestReading = 0;
-float movingAverage = 0.0;
-float celsiusTemp = 0.0;
-int dataTypeFlag = 0;           // {"0": n value, "1": temp data}
-unsigned int reset = 0;
+/**
+ * W. Ward and H. Ketteler
+ * 04/10/2022
+ * I2C Main
+ */
 
 void configI2C(void) {
     //-- Config. I2C Master
@@ -102,27 +92,6 @@ void configKeypad(void){
     return;
 }
 
-unsigned int checkKeypad() {
-    int buttonValue = 0b0;
-
-    buttonValue = P3IN;     // Move input to variable
-
-    if (buttonValue == 0b0) {
-        return 0x00;
-    }
-
-    P3DIR &= ~0b00001111;   // Set columns as input
-    P3OUT &= ~0b00001111;   // Set pull-down resistors for rows
-    P3DIR |=  0b11110000;   // Set rows as outputs
-    P3OUT |=  0b11110000;   // Set rows high
-
-    buttonValue = buttonValue & P3IN;   // Add both nibbles together
-
-    configKeypad();
-
-    return buttonValue;
-}
-
 int delay(int delay){
     int zzz;
     for(zzz=0; zzz<delay; zzz++){}
@@ -167,106 +136,14 @@ float convertTemp(float averageTemp){
     return 0.0;
 }
 
+
+
 int main(void)
 {
-    WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
-
-    P1DIR |= BIT0;        // P1.0 LED 1
-    P1OUT &= ~BIT0;        // Init val = 0
-    P6DIR |= BIT6;        // P6.6 LED 2
-    P6OUT &= ~BIT6;        // Init val = 0
-
-    PM5CTL0 &= ~LOCKLPM5;       // disable LPM
-
-    configI2C();
-
-    configTimer();
-
-    configADC();
-
-    P3IE |= 0x0FF;
-    P3IES &= ~0x0FF;
-    P3IFG &= ~0x0FF;
-
-    configKeypad();
-
-    __enable_interrupt();
-
-    while(n == 0) {
-        // unsigned int keypadValue = checkKeypad();
-        switch (keypadValue) {
-        case 0x088:
-            n = 1;
-            break;
-        case 0x084:
-            n = 2;
-            break;
-        case 0x082:
-            n = 3;
-            break;
-        case 0x048:
-            n = 4;
-            break;
-        case 0x044:
-            n = 5;
-            break;
-        case 0x042:
-            n = 6;
-            break;
-        case 0x028:
-            n = 7;
-            break;
-        case 0x024:
-            n = 8;
-            break;
-        case 0x022:
-            n = 9;
-            break;
-        default:
-            n = 0;
-            break;
-        }
-    }
-
-    send_i2c();
-
-    float readings[10];
-    int i;
-    for (i = 0; i < 10; i++) {
-        readings[i] = 0.0;
-    }
-
-    enableTimerInterrupt(6244);
-
-    while(numberOfReadings < n) {
-        if(newReading == 1) {
-            readings[numberOfReadings] = newestReading;
-            numberOfReadings++;
-            newReading = 0;
-        }
-    }
-
-    numberOfReadings = n + 1;
-
-    while(1) {
-        if(newReading == 1) {
-            unsigned int k;
-            for(k=0;k<n;k++) {
-                readings[k] = readings[k+1];
-                if (k == (n-1)) {
-                    readings[k] = newestReading;
-                }
-            }
-            newReading = 0;
-        }
-        movingAverage = getMovingAverage(readings);
-        convertTemp(movingAverage);
-    }
-
-    while(1){};
-    return 0;
+	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
+	
+	return 0;
 }
-//-- END main
 
 
 //-- Interrupt Service Routines -------------------------
@@ -345,3 +222,4 @@ __interrupt void ISR_P3_Keypad(void) {
 
     P3IFG &= ~0x0FF;
 }
+
