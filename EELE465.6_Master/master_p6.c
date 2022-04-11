@@ -7,16 +7,21 @@
  * I2C Main
  */
 
-unsigned int keypadValue = 0x00;
-unsigned int n = 0;
-unsigned int numberOfReadings = 0;
-unsigned int newADCReading = 0;
-unsigned int reset = 0;
-unsigned int lcdDataToSend[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned int ledDataToSend[2] = { 0, 0 };
-unsigned int rtcDataRecieved[2] = { 0, 0 };
-unsigned int tempDataRecieved[2] = { 0, 0 };
+unsigned char keypadValue = 0x00;
+unsigned char n = 0x00;
+unsigned char numberOfReadings = 0x00;
+unsigned char newADCReading = 0x00;
+unsigned char reset = 0x00;
+unsigned char adcTemp[2] = { 0x00, 0x00 };
+unsigned char lcdDataToSend[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+unsigned char ledDataToSend[2] = { 0x00, 0x00 };
+unsigned char rtcDataRecieved[2] = { 0x00, 0x00 };
+unsigned char tempDataRecieved[2] = { 0x00, 0x00 };
 unsigned char rtcInitialization[8] = { 0x00, 0x00, 0x00, 0x00, 0x05, 0x01, 0x01, 0x97 }; // 00:00:00 Thursday 01/01/'97  {time_cal_addr, t.sec, t.min, t.hour, t.wday, t.mday, t.mon, t.year_s}
+const unsigned char ledAddress = 0x042;
+const unsigned char lcdAddress = 0x069;
+const unsigned char rtcAddress = 0x068;
+const unsigned char tempAddress = 0x018;
 float movingAverage = 0.0;
 float celsiusTemp = 0.0;
 
@@ -29,7 +34,7 @@ void configI2C(void) {
     UCB1CTLW0 |= UCMODE_3;
     UCB1CTLW0 |= UCMST;
     UCB1CTLW0 |= UCTR;
-    UCB1I2CSA = 0x069;
+    UCB1I2CSA = 0x068;
     UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
     UCB1TBCNT = 3;              // # of Bytes in Packet
 
@@ -133,7 +138,7 @@ float getMovingAverage(float averageArray[]) {
     return sumTotal / n;
 }
 
-float convertTemp(float averageTemp){
+float convertADCTempToTwoByteTemp(float averageTemp){
     unsigned int val1;
     unsigned int val2;
     float voltConvert;
@@ -141,11 +146,11 @@ float convertTemp(float averageTemp){
 
     // Above the decimal point
     val1 = voltConvert;
-    dataToSendI2C[0] = val1;
+    adcTemp[0] = val1;
 
     // Below the decimal point
     val2 = (voltConvert - val1) * 10;
-    dataToSendI2C[1] = val2;
+    adcTemp[1] = val2;
 
     return 0.0;
 }
@@ -197,26 +202,7 @@ int main(void)
 //-- Service I2C B1
 #pragma vector=EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
-    if (dataSent == 2) {
-        UCB1IFG &= ~UCTXIFG0;
-        UCB1CTL1 |= UCTXSTP;
-        dataSent = 0;
-    } else {
-        if (dataTypeFlag == 0) {
-            if (dataSent == 0){
-                UCB1TXBUF = n;
-            } else {
-                UCB1TXBUF = 0xAA;
-                dataTypeFlag = 1;
-                P1OUT |= BIT0;
-                P6OUT |= BIT6;
-            }
-        } else {
-            UCB1TXBUF = dataToSendI2C[dataSent];
-        }
-        dataSent++;
-        UCB1IFG &= ~UCTXIFG0;
-    }
+
     return;
 }
 //-- END I2C B1 ISR
