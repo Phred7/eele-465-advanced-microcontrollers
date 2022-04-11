@@ -7,9 +7,22 @@
  * I2C Main
  */
 
+unsigned int keypadValue = 0x00;
+unsigned int n = 0;
+unsigned int numberOfReadings = 0;
+unsigned int newADCReading = 0;
+unsigned int reset = 0;
+unsigned int lcdDataToSend[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned int ledDataToSend[2] = { 0, 0 };
+unsigned int rtcDataRecieved[2] = { 0, 0 };
+unsigned int tempDataRecieved[2] = { 0, 0 };
+unsigned char rtcInitialization[8] = { 0x00, 0x00, 0x00, 0x00, 0x05, 0x01, 0x01, 0x97 }; // 00:00:00 Thursday 01/01/'97  {time_cal_addr, t.sec, t.min, t.hour, t.wday, t.mday, t.mon, t.year_s}
+float movingAverage = 0.0;
+float celsiusTemp = 0.0;
+
 void configI2C(void) {
     //-- Config. I2C Master
-    //-- Put eUSCI_B0 into sw reset
+    //-- Put eUSCI_B0 into SW reset
     UCB1CTLW0 |= UCSWRST;
     UCB1CTLW0 |= UCSSEL_3;
     UCB1BRW = 10;
@@ -19,6 +32,7 @@ void configI2C(void) {
     UCB1I2CSA = 0x069;
     UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
     UCB1TBCNT = 3;              // # of Bytes in Packet
+
     //-- Config I2C Ports
     P4SEL1 &= ~BIT7;            // P4.7 = SCL
     P4SEL0 |= BIT7;
@@ -142,22 +156,47 @@ int main(void)
 {
 	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
 	
+	P1DIR |= BIT0;        // P1.0 LED 1
+    P1OUT &= ~BIT0;        // Init val = 0
+    P6DIR |= BIT6;        // P6.6 LED 2
+    P6OUT &= ~BIT6;        // Init val = 0
+
+    PM5CTL0 &= ~LOCKLPM5;       // disable LPM
+
+    configI2C();
+
+    configTimer();
+
+    configADC();
+
+    P3IE |= 0x0FF;
+    P3IES &= ~0x0FF;
+    P3IFG &= ~0x0FF;
+
+    configKeypad();
+
+    __enable_interrupt();
+
+    // start RTC
+
+    // wait for N from user
+
+    /* control peltier based on input mode
+     * if input is A heat-only
+     * if input is B cool-only
+     * if input is C temperature match w/ room temperature
+     * if input is D disable the system
+    */
+
 	return 0;
 }
+
 
 
 //-- Interrupt Service Routines -------------------------
 //-- Service I2C B1
 #pragma vector=EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
-//    if (reset == 1) {
-//        if (dataSent == 1) {
-//            reset = 0;
-//            dataTypeFlag = 0;
-//        }
-//        UCB1TXBUF = 0xFF;
-//        UCB1IFG &= ~UCTXIFG0;
-    //    } else
     if (dataSent == 2) {
         UCB1IFG &= ~UCTXIFG0;
         UCB1CTL1 |= UCTXSTP;
@@ -191,9 +230,8 @@ __interrupt void ISR_TB0_CCR0(void) {
 
     ADCCTL0 |= ADCENC | ADCSC;          // Start ADC
     while((ADCIFG & ADCIFG0) == 0);     // Wait for conversion completion
-    newestReading = ADCMEM0;                // Read ADC value
+    newADCReading = ADCMEM0;                // Read ADC value
 
-    newReading = 1;
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
 }
 //-- END TB0 ISR
