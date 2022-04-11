@@ -8,6 +8,7 @@
  */
 
 unsigned char keypadValue = 0x00;
+unsigned char currentControlMode = 0x11; //A - 0x081, B - 0x041, C - 0x021, D - 0x011
 unsigned char n = 0x00;
 unsigned char numberOfReadings = 0x00;
 unsigned char newADCReading = 0x00;
@@ -17,7 +18,7 @@ unsigned char lcdDataToSend[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0
 unsigned char ledDataToSend[2] = { 0x00, 0x00 };
 unsigned char rtcDataRecieved[2] = { 0x00, 0x00 };
 unsigned char tempDataRecieved[2] = { 0x00, 0x00 };
-unsigned char rtcInitialization[8] = { 0x00, 0x00, 0x00, 0x00, 0x05, 0x01, 0x01, 0x97 }; // 00:00:00 Thursday 01/01/'97  {time_cal_addr, t.sec, t.min, t.hour, t.wday, t.mday, t.mon, t.year_s}
+unsigned char rtcInitialization[8] = { 0x00, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01, 0x97 }; // 00:00:00 Thursday 01/01/'97  {time_cal_addr, t.sec, t.min, t.hour, t.wday, t.mday, t.mon, t.year_s}
 const unsigned char ledAddress = 0x042;
 const unsigned char lcdAddress = 0x069;
 const unsigned char rtcAddress = 0x068;
@@ -155,6 +156,25 @@ float convertADCTempToTwoByteTemp(float averageTemp){
     return 0.0;
 }
 
+void configPeltier(void){
+    P4DIR |= BIT0;        // P4.0
+    P4OUT &= ~BIT0;       // Init val = 0
+    P4DIR |= BIT1;        // P4.1
+    P4OUT &= ~BIT1;       // Init val = 0
+}
+
+void peltierCool(void) {
+    P4OUT &= ~BIT1;
+    // delay?
+    P4OUT |= BIT0;
+}
+
+void peltierHeat(void) {
+    P4OUT &= ~BIT0;
+    // delay?
+    P4OUT |= BIT1;
+}
+
 
 
 int main(void)
@@ -180,11 +200,21 @@ int main(void)
 
     configKeypad();
 
+    configPeltier();
+
     __enable_interrupt();
 
     // start RTC
 
-    // wait for N from user
+
+    // wait for N from user. Dont convert N to Dec.
+    while (n == 0x00) {
+        if (keypadValue > 0x00) {
+            n = keypadValue;
+        }
+    }
+
+    //A - 0x081, B - 0x041, C - 0x021, D - 0x011
 
     /* control peltier based on input mode
      * if input is A heat-only
@@ -192,6 +222,20 @@ int main(void)
      * if input is C temperature match w/ room temperature
      * if input is D disable the system
     */
+
+    while(1) {
+        if (currentControlMode == 0x081) {
+
+        } else if (currentControlMode == 0x041) {
+
+        } else if (currentControlMode == 0x021) {
+
+        } else if (currentControlMode == 0x011) {
+            disableTimerInterrupt();
+        } else {
+            currentControlMode = 0x011;
+        }
+    }
 
 	return 0;
 }
@@ -240,6 +284,11 @@ __interrupt void ISR_P3_Keypad(void) {
         reset = 1;
         P1OUT &= ~BIT0;
         P6OUT &= ~BIT6;
+    }
+
+    //A - 0x081, B - 0x041, C - 0x021, D - 0x011
+    if (keypadValue == 0x081 || keypadValue == 0x041 || keypadValue == 0x021 || keypadValue == 0x011) {
+        currentControlMode = keypadValue;
     }
 
     configKeypad();
