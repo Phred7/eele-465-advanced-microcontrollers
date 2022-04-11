@@ -4,7 +4,7 @@
 /**
  * W. Ward and H. Ketteler
  * 04/10/2022
- * I2C Main
+ * I2C Main - System Controller
  */
 
 unsigned char keypadValue = 0x00;
@@ -13,6 +13,7 @@ unsigned char n = 0x00;
 unsigned char numberOfReadings = 0x00;
 unsigned char newADCReading = 0x00;
 unsigned char reset = 0x00;
+unsigned char i2cReadWriteFlag = 0x00;
 unsigned char adcTemp[2] = { 0x00, 0x00 };
 unsigned char adcReadings[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned char lcdDataToSend[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -182,7 +183,7 @@ void captureStartReadings(void) {
         numberOfReadings++;
         newADCReading = 0;
     }
-    //if ()
+    //if () do i2c temp here.
 }
 
 
@@ -259,6 +260,21 @@ int main(void)
 //-- Service I2C B1
 #pragma vector=EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
+    /*
+     * Enable resend after a NAK with UCB1IV and clock low timeout
+     */
+    // i2cReadWriteFlag
+    if (i2cReadWriteFlag == 0x00) {
+
+    } else if (i2cReadWriteFlag == 0x01) {
+        /*
+         * Switch on address in UCB1I2CSA
+         * Make code call sendI2C to each device which sets the secondary's address.
+         * Then use a switch on that address to know what to send and when to stop.
+         */
+    } else {
+
+    }
 
     return;
 }
