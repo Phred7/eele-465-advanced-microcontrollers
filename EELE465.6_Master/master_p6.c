@@ -186,6 +186,21 @@ void captureStartReadings(void) {
     //if () do i2c temp here.
 }
 
+void disable(void) {
+
+}
+
+void heatOnly(void) {
+
+}
+
+void coolOnly(void) {
+
+}
+
+void matchTemperature(void) {
+
+}
 
 
 int main(void)
@@ -239,13 +254,13 @@ int main(void)
     */
     while(1) {
         if (currentControlMode == 0x081) {
-
+            heatOnly();
         } else if (currentControlMode == 0x041) {
-
+            coolOnly();
         } else if (currentControlMode == 0x021) {
-
+            matchTemperature();
         } else if (currentControlMode == 0x011) {
-            disableTimerInterrupt();
+            disable();
         } else {
             currentControlMode = 0x011;
         }
