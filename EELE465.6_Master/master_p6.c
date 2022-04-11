@@ -14,6 +14,7 @@ unsigned char numberOfReadings = 0x00;
 unsigned char newADCReading = 0x00;
 unsigned char reset = 0x00;
 unsigned char adcTemp[2] = { 0x00, 0x00 };
+unsigned char adcReadings[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned char lcdDataToSend[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned char ledDataToSend[2] = { 0x00, 0x00 };
 unsigned char rtcDataRecieved[2] = { 0x00, 0x00 };
@@ -175,6 +176,15 @@ void peltierHeat(void) {
     P4OUT |= BIT1;
 }
 
+void captureStartReadings(void) {
+    if(newADCReading > 0) {
+        adcReadings[numberOfReadings] = newADCReading;
+        numberOfReadings++;
+        newADCReading = 0;
+    }
+    //if ()
+}
+
 
 
 int main(void)
@@ -204,8 +214,7 @@ int main(void)
 
     __enable_interrupt();
 
-    // start RTC
-
+    // start RTC?
 
     // wait for N from user. Dont convert N to Dec.
     while (n == 0x00) {
@@ -214,15 +223,19 @@ int main(void)
         }
     }
 
-    //A - 0x081, B - 0x041, C - 0x021, D - 0x011
+    while (numberOfReadings < n) {
+        captureStartReadings();
+    }
 
+    numberOfReadings = n + 1;
+
+    //A - 0x081, B - 0x041, C - 0x021, D - 0x011
     /* control peltier based on input mode
      * if input is A heat-only
      * if input is B cool-only
      * if input is C temperature match w/ room temperature
      * if input is D disable the system
     */
-
     while(1) {
         if (currentControlMode == 0x081) {
 
