@@ -14,6 +14,7 @@ unsigned char numberOfReadings = 0x00;
 unsigned char newADCReading = 0x00;
 unsigned char reset = 0x00;
 unsigned char i2cReadWriteFlag = 0x00;
+unsigned char i2cTransmitCompleteFlag = 0x00;
 unsigned char adcTemp[2] = { 0x00, 0x00 };
 unsigned char adcReadings[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned char lcdDataToSend[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -120,14 +121,18 @@ int delay(int delay){
     return 0;
 }
 
-int send_i2c(void) {
+int send_i2c(int slaveAddress) {
+
+    if (slaveAddress != ledAddress && slaveAddress != lcdAddress && slaveAddress != rtcAddress && slaveAddress != tempAddress) {
+        return 0;
+    }
+
+    UCB1I2CSA = slaveAddress;
 
     UCB1CTLW0 |= UCTXSTT;
     while (UCB1CTLW0 & UCTXSTP);
+    while (i2cTransmitCompleteFlag != 0x00);
     P1OUT ^= BIT0;
-//    delay(15);
-
- //   dataToSendI2C = 0x00;
 
     return 0;
 }
@@ -278,19 +283,37 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
     /*
      * Enable resend after a NAK with UCB1IV and clock low timeout
      */
-    // i2cReadWriteFlag
+
+    /*
+     * Switch on address in UCB1I2CSA
+     * Make code call sendI2C to each device which sets the secondary's address.
+     * Then use a switch on that address to know what to send and when to stop.
+     */
+
+    switch (UCB1IV) {
+    case 0x1C:
+        /*
+         * Clock Low Time-Out;
+         * Adapted from https://e2e.ti.com/support/microcontrollers/msp-low-power-microcontrollers-group/msp430/f/msp-low-power-microcontroller-forum/869750/msp430fr2433-i2c-clock-low-timeout-interrupt
+         */
+        r = UCB1IE;             // Save current IE bits
+        P4SEL0 &= ~(BIT6);      // Generate NACK by releasing SDA
+        P4SEL0 &= ~(BIT7);      //  then SCL by disconnecting from the I2C
+        UCB1CTLW0 |= UCSWRST;   // Reset
+        UCB1CTLW0 &= ~UCSWRST;
+        P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
+        UCB1IE = r;             // Put IE back
+    }
+
     if (i2cReadWriteFlag == 0x00) {
 
     } else if (i2cReadWriteFlag == 0x01) {
-        /*
-         * Switch on address in UCB1I2CSA
-         * Make code call sendI2C to each device which sets the secondary's address.
-         * Then use a switch on that address to know what to send and when to stop.
-         */
+
     } else {
 
     }
 
+    UCB1IFG &= ~UCTXIFG0;
     return;
 }
 //-- END I2C B1 ISR
@@ -298,9 +321,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
 //-- Service TB0
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void ISR_TB0_CCR0(void) {
-    if (numberOfReadings > n) {
-        send_i2c();
-    }
+    // Trigger I2C somehow?
 
     ADCCTL0 |= ADCENC | ADCSC;          // Start ADC
     while((ADCIFG & ADCIFG0) == 0);     // Wait for conversion completion
