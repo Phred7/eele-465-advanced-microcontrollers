@@ -1,10 +1,10 @@
 ******************************************************************************
                   MSP430 Linker PC v20.2.5                     
 ******************************************************************************
->> Linked Tue Mar 29 03:03:52 2022
+>> Linked Tue Apr 12 01:11:35 2022
 
 OUTPUT FILE NAME:   <EELE465.05_Master_Temp.out>
-ENTRY POINT SYMBOL: "_c_int00_noargs_mpu"  address: 000090e8
+ENTRY POINT SYMBOL: "_c_int00_noargs_mpu"  address: 000090f0
 
 
 MEMORY CONFIGURATION
@@ -17,7 +17,7 @@ MEMORY CONFIGURATION
   TLVMEM                00001a00   00000200  00000000  00000200  RWIX
   BOOTCODE              00001c00   00000400  00000000  00000400  RWIX
   RAM                   00002000   00001000  000000c0  00000f40  RWIX
-  FRAM                  00008000   00007f80  00001110  00006e70  RWIX
+  FRAM                  00008000   00007f80  00001118  00006e68  RWIX
   JTAGSIGNATURE         0000ff80   00000004  00000004  00000000  RWIX  ffff 
   BSLSIGNATURE          0000ff84   00000004  00000004  00000000  RWIX  ffff 
   BSLCONFIGURATIONSIGNA 0000ff88   00000002  00000002  00000000  RWIX  ffff 
@@ -80,7 +80,7 @@ SECTION ALLOCATION MAP
 section   page    origin      length       input sections
 --------  ----  ----------  ----------   ----------------
 .data      0    00002000    0000001e     UNINITIALIZED
-                  00002000    00000012     master_temp.obj (.data)
+                  00002000    00000012     p5_master_temp.obj (.data)
                   00002012    00000004     rts430x_lc_sd_eabi.lib : _lock.c.obj (.data:_lock)
                   00002016    00000004                            : _lock.c.obj (.data:_unlock)
                   0000201a    00000002                            : memory.c.obj (.data)
@@ -116,46 +116,46 @@ section   page    origin      length       input sections
 
 .const     0    00008448    00000000     UNINITIALIZED
 
-.text      0    00008448    00000c4a     
+.text      0    00008448    00000c52     
                   00008448    000001cc     rts430x_lc_sd_eabi.lib : vla_alloc.c.obj (.text:__vla_alloc)
-                  00008614    0000017c     master_temp.obj (.text:main)
-                  00008790    00000132     rts430x_lc_sd_eabi.lib : fs_add.asm.obj (.text)
-                  000088c2    000000f0                            : memory.c.obj (.text:aligned_alloc)
-                  000089b2    000000ee                            : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
-                  00008aa0    000000d2                            : memory.c.obj (.text:free)
-                  00008b72    000000c4                            : memory.c.obj (.text:realloc)
-                  00008c36    00000098                            : vla_alloc.c.obj (.text:_ZN33_INTERNAL_11_vla_alloc_c_be8bd49b21free_dead_allocationsEPv)
-                  00008cce    0000006a                            : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit_hold_wdt:__TI_auto_init_nobinit_nopinit_hold_wdt)
-                  00008d38    00000068                            : memory.c.obj (.text:split)
-                  00008da0    00000052     master_temp.obj (.text:configI2C)
-                  00008df2    00000046     rts430x_lc_sd_eabi.lib : fs_tou.asm.obj (.text)
-                  00008e38    00000044     master_temp.obj (.text:checkKeypad)
-                  00008e7c    00000040     rts430x_lc_sd_eabi.lib : cpy_util.asm.obj (.text:__memcpy_far)
-                  00008ebc    0000003e                            : copy_zero_init.c.obj (.text:decompress:ZI:__TI_zero_init_nomemset:__TI_zero_init_nomemset)
-                  00008efa    0000003c     FRWP_INIT_LIB_CCS_msp430_large_code_small_data.lib : frwp_init.obj (.text:__mpu_init)
-                  00008f36    0000003c     rts430x_lc_sd_eabi.lib : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
-                  00008f72    0000002c     master_temp.obj (.text:getMovingAverage)
-                  00008f9e    0000002a     master_temp.obj (.text:configTimer)
+                  00008614    00000190     p5_master_temp.obj (.text:main)
+                  000087a4    00000132     rts430x_lc_sd_eabi.lib : fs_add.asm.obj (.text)
+                  000088d6    000000f0                            : memory.c.obj (.text:aligned_alloc)
+                  000089c6    000000ee                            : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
+                  00008ab4    000000d2                            : memory.c.obj (.text:free)
+                  00008b86    000000c4                            : memory.c.obj (.text:realloc)
+                  00008c4a    00000098                            : vla_alloc.c.obj (.text:_ZN33_INTERNAL_11_vla_alloc_c_be8bd49b21free_dead_allocationsEPv)
+                  00008ce2    0000006a                            : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit_hold_wdt:__TI_auto_init_nobinit_nopinit_hold_wdt)
+                  00008d4c    00000068                            : memory.c.obj (.text:split)
+                  00008db4    00000052     p5_master_temp.obj (.text:configI2C)
+                  00008e06    00000046     rts430x_lc_sd_eabi.lib : fs_tou.asm.obj (.text)
+                  00008e4c    00000040                            : cpy_util.asm.obj (.text:__memcpy_far)
+                  00008e8c    0000003e                            : copy_zero_init.c.obj (.text:decompress:ZI:__TI_zero_init_nomemset:__TI_zero_init_nomemset)
+                  00008eca    0000003c     FRWP_INIT_LIB_CCS_msp430_large_code_small_data.lib : frwp_init.obj (.text:__mpu_init)
+                  00008f06    0000003c     rts430x_lc_sd_eabi.lib : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
+                  00008f42    00000030     p5_master_temp.obj (.text:checkKeypad)
+                  00008f72    0000002c     p5_master_temp.obj (.text:getMovingAverage)
+                  00008f9e    0000002a     p5_master_temp.obj (.text:configTimer)
                   00008fc8    00000028     rts430x_lc_sd_eabi.lib : memory.c.obj (.text:free_list_insert)
-                  00008ff0    0000001c                            : memory.c.obj (.text:free_list_remove)
-                  0000900c    0000001c     master_temp.obj (.text:send_i2c)
-                  00009028    00000018     rts430x_lc_sd_eabi.lib : mult16_f5hw.asm.obj (.text)
-                  00009040    00000016     master_temp.obj (.text:configKeypad)
-                  00009056    00000012     rts430x_lc_sd_eabi.lib : memcpy.c.obj (.text:memcpy)
-                  00009068    00000010     master_temp.obj (.text:enableTimerInterrupt)
-                  00009078    00000008     rts430x_lc_sd_eabi.lib : memory.c.obj (.text:malloc)
-                  00009080    00000006                            : exit.c.obj (.text:abort)
-                  00009086    00000004                            : error.c.obj (.text:__abort_execution)
-                  0000908a    00000004                            : pre_init.c.obj (.text:_system_pre_init)
-                  0000908e    00000002                            : _lock.c.obj (.text:_nop)
-                  00009090    00000002                            : startup.c.obj (.text:_system_post_cinit)
+                  00008ff0    0000001e     p5_master_temp.obj (.text:configKeypad)
+                  0000900e    0000001c     rts430x_lc_sd_eabi.lib : memory.c.obj (.text:free_list_remove)
+                  0000902a    0000001c     p5_master_temp.obj (.text:send_i2c)
+                  00009046    00000018     rts430x_lc_sd_eabi.lib : mult16_f5hw.asm.obj (.text)
+                  0000905e    00000012                            : memcpy.c.obj (.text:memcpy)
+                  00009070    00000010     p5_master_temp.obj (.text:enableTimerInterrupt)
+                  00009080    00000008     rts430x_lc_sd_eabi.lib : memory.c.obj (.text:malloc)
+                  00009088    00000006                            : exit.c.obj (.text:abort)
+                  0000908e    00000004                            : error.c.obj (.text:__abort_execution)
+                  00009092    00000004                            : pre_init.c.obj (.text:_system_pre_init)
+                  00009096    00000002                            : _lock.c.obj (.text:_nop)
+                  00009098    00000002                            : startup.c.obj (.text:_system_post_cinit)
 
 .text:_isr 
-*          0    00009092    0000007e     
-                  00009092    00000032     master_temp.obj (.text:_isr:ISR_TB0_CCR0)
-                  000090c4    00000024     master_temp.obj (.text:_isr:EUSCI_B1_I2C_ISR)
-                  000090e8    00000020     rts430x_lc_sd_eabi.lib : boot.c.obj (.text:_isr:_c_int00_noargs_mpu)
-                  00009108    00000008                            : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
+*          0    0000909a    0000007e     
+                  0000909a    00000032     p5_master_temp.obj (.text:_isr:ISR_TB0_CCR0)
+                  000090cc    00000024     p5_master_temp.obj (.text:_isr:EUSCI_B1_I2C_ISR)
+                  000090f0    00000020     rts430x_lc_sd_eabi.lib : boot.c.obj (.text:_isr:_c_int00_noargs_mpu)
+                  00009110    00000008                            : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
 
 .bss       0    0000201e    00000002     UNINITIALIZED
                   0000201e    00000002     rts430x_lc_sd_eabi.lib : memory.c.obj (.bss)
@@ -192,7 +192,7 @@ ADC        0    0000ffdc    00000002
                   0000ffdc    00000002     rts430x_lc_sd_eabi.lib : int29.asm.obj (.int29)
 
 EUSCI_B1   0    0000ffde    00000002     
-                  0000ffde    00000002     master_temp.obj (.int30)
+                  0000ffde    00000002     p5_master_temp.obj (.int30)
 
 EUSCI_B0   0    0000ffe0    00000002     
                   0000ffe0    00000002     rts430x_lc_sd_eabi.lib : int31.asm.obj (.int31)
@@ -239,7 +239,7 @@ TIMER0_B1
 
 TIMER0_B0 
 *          0    0000fff8    00000002     
-                  0000fff8    00000002     master_temp.obj (.int43)
+                  0000fff8    00000002     p5_master_temp.obj (.int43)
 
 UNMI       0    0000fffa    00000002     
                   0000fffa    00000002     rts430x_lc_sd_eabi.lib : int44.asm.obj (.int44)
@@ -270,9 +270,9 @@ MODULE SUMMARY
        Module                       code   ro data   rw data
        ------                       ----   -------   -------
     .\
-       master_temp.obj              768    4         18     
+       p5_master_temp.obj           776    4         18     
     +--+----------------------------+------+---------+---------+
-       Total:                       768    4         18     
+       Total:                       776    4         18     
                                                             
     C:\ti\ccs1040\ccs\ccs_base\msp430\lib\FR2xx\FRWP_INIT_LIB_CCS_msp430_large_code_small_data.lib
        frwp_init.obj                60     0         0      
@@ -327,7 +327,7 @@ MODULE SUMMARY
        Stack:                       0      0         160    
        Linker Generated:            0      70        0      
     +--+----------------------------+------+---------+---------+
-       Grand Total:                 3272   120       352    
+       Grand Total:                 3280   120       352    
 
 
 LINKER GENERATED COPY TABLES
@@ -427,7 +427,7 @@ address   name
 00000672  BAKMEM9                                
 00000673  BAKMEM9_H                              
 00000672  BAKMEM9_L                              
-00009080  C$$EXIT                                
+00009088  C$$EXIT                                
 000002ee  CAPTIOCTL                              
 000002ef  CAPTIOCTL_H                            
 000002ee  CAPTIOCTL_L                            
@@ -506,7 +506,7 @@ address   name
 00000190  CSCTL8                                 
 00000191  CSCTL8_H                               
 00000190  CSCTL8_L                               
-000090c4  EUSCI_B1_I2C_ISR                       
+000090cc  EUSCI_B1_I2C_ISR                       
 000001a0  FRCTL0                                 
 000001a1  FRCTL0_H                               
 000001a0  FRCTL0_L                               
@@ -534,7 +534,7 @@ address   name
 000006c0  ICCSC                                  
 000006c1  ICCSC_H                                
 000006c0  ICCSC_L                                
-00009092  ISR_TB0_CCR0                           
+0000909a  ISR_TB0_CCR0                           
 000004c4  MAC                                    
 000004da  MAC32H                                 
 000004db  MAC32H_H                               
@@ -1265,10 +1265,10 @@ address   name
 00008448  __TI_CINIT_Limit                       
 00008426  __TI_Handler_Table_Base                
 00008432  __TI_Handler_Table_Limit               
-00009108  __TI_ISR_TRAP                          
-00008cce  __TI_auto_init_nobinit_nopinit_hold_wdt
-000089b2  __TI_decompress_lzss                   
-00008f36  __TI_decompress_none                   
+00009110  __TI_ISR_TRAP                          
+00008ce2  __TI_auto_init_nobinit_nopinit_hold_wdt
+000089c6  __TI_decompress_lzss                   
+00008f06  __TI_decompress_none                   
 0000ffce  __TI_int22                             
 0000ffd0  __TI_int23                             
 0000ffd2  __TI_int24                             
@@ -1296,52 +1296,52 @@ address   name
 ffffffff  __TI_pprof_out_hndl                    
 ffffffff  __TI_prof_data_size                    
 ffffffff  __TI_prof_data_start                   
-00008ebc  __TI_zero_init_nomemset                
-00009086  __abort_execution                      
+00008e8c  __TI_zero_init_nomemset                
+0000908e  __abort_execution                      
 ffffffff  __c_args__                             
-00008e7c  __memcpy_far                           
+00008e4c  __memcpy_far                           
 00000001  __mpu_enable                           
-00008efa  __mpu_init                             
-00008796  __mspabi_addf                          
-00008df2  __mspabi_fixfu                         
-00009028  __mspabi_mpyi_f5hw                     
-00008790  __mspabi_subf                          
+00008eca  __mpu_init                             
+000087aa  __mspabi_addf                          
+00008e06  __mspabi_fixfu                         
+00009046  __mspabi_mpyi_f5hw                     
+000087a4  __mspabi_subf                          
 00008448  __vla_alloc                            
-000090e8  _c_int00_noargs_mpu                    
+000090f0  _c_int00_noargs_mpu                    
 00002012  _lock                                  
-0000908e  _nop                                   
+00009096  _nop                                   
 0000fffe  _reset_vector                          
 00002f60  _stack                                 
 00008000  _sys_memory                            
-00009090  _system_post_cinit                     
-0000908a  _system_pre_init                       
+00009098  _system_post_cinit                     
+00009092  _system_pre_init                       
 00002016  _unlock                                
-00009080  abort                                  
-000088c2  aligned_alloc                          
-00008e38  checkKeypad                            
-00008da0  configI2C                              
-00009040  configKeypad                           
+00009088  abort                                  
+000088d6  aligned_alloc                          
+00008f42  checkKeypad                            
+00008db4  configI2C                              
+00008ff0  configKeypad                           
 00008f9e  configTimer                            
 00002000  dataSent                               
 00002002  dataToSendI2C                          
-00009068  enableTimerInterrupt                   
+00009070  enableTimerInterrupt                   
 00008000  fram_rw_start                          
 00008400  fram_rx_start                          
-00008aa0  free                                   
+00008ab4  free                                   
 00008f72  getMovingAverage                       
 00000001  info_fram_protection                   
 00008614  main                                   
-00009078  malloc                                 
-000088c2  memalign                               
-00009056  memcpy                                 
+00009080  malloc                                 
+000088d6  memalign                               
+0000905e  memcpy                                 
 0000200e  movingAverage                          
 00002004  n                                      
 00002008  newReading                             
 0000200a  newestReading                          
 00002006  numberOfReadings                       
 00000001  program_fram_protection                
-00008b72  realloc                                
-0000900c  send_i2c                               
+00008b86  realloc                                
+0000902a  send_i2c                               
 00000001  start_protection_offset_address        
 
 
@@ -2281,39 +2281,39 @@ address   name
 00008448  __TI_CINIT_Limit                       
 00008448  __vla_alloc                            
 00008614  main                                   
-00008790  __mspabi_subf                          
-00008796  __mspabi_addf                          
-000088c2  aligned_alloc                          
-000088c2  memalign                               
-000089b2  __TI_decompress_lzss                   
-00008aa0  free                                   
-00008b72  realloc                                
-00008cce  __TI_auto_init_nobinit_nopinit_hold_wdt
-00008da0  configI2C                              
-00008df2  __mspabi_fixfu                         
-00008e38  checkKeypad                            
-00008e7c  __memcpy_far                           
-00008ebc  __TI_zero_init_nomemset                
-00008efa  __mpu_init                             
-00008f36  __TI_decompress_none                   
+000087a4  __mspabi_subf                          
+000087aa  __mspabi_addf                          
+000088d6  aligned_alloc                          
+000088d6  memalign                               
+000089c6  __TI_decompress_lzss                   
+00008ab4  free                                   
+00008b86  realloc                                
+00008ce2  __TI_auto_init_nobinit_nopinit_hold_wdt
+00008db4  configI2C                              
+00008e06  __mspabi_fixfu                         
+00008e4c  __memcpy_far                           
+00008e8c  __TI_zero_init_nomemset                
+00008eca  __mpu_init                             
+00008f06  __TI_decompress_none                   
+00008f42  checkKeypad                            
 00008f72  getMovingAverage                       
 00008f9e  configTimer                            
-0000900c  send_i2c                               
-00009028  __mspabi_mpyi_f5hw                     
-00009040  configKeypad                           
-00009056  memcpy                                 
-00009068  enableTimerInterrupt                   
-00009078  malloc                                 
-00009080  C$$EXIT                                
-00009080  abort                                  
-00009086  __abort_execution                      
-0000908a  _system_pre_init                       
-0000908e  _nop                                   
-00009090  _system_post_cinit                     
-00009092  ISR_TB0_CCR0                           
-000090c4  EUSCI_B1_I2C_ISR                       
-000090e8  _c_int00_noargs_mpu                    
-00009108  __TI_ISR_TRAP                          
+00008ff0  configKeypad                           
+0000902a  send_i2c                               
+00009046  __mspabi_mpyi_f5hw                     
+0000905e  memcpy                                 
+00009070  enableTimerInterrupt                   
+00009080  malloc                                 
+00009088  C$$EXIT                                
+00009088  abort                                  
+0000908e  __abort_execution                      
+00009092  _system_pre_init                       
+00009096  _nop                                   
+00009098  _system_post_cinit                     
+0000909a  ISR_TB0_CCR0                           
+000090cc  EUSCI_B1_I2C_ISR                       
+000090f0  _c_int00_noargs_mpu                    
+00009110  __TI_ISR_TRAP                          
 0000ffce  __TI_int22                             
 0000ffd0  __TI_int23                             
 0000ffd2  __TI_int24                             

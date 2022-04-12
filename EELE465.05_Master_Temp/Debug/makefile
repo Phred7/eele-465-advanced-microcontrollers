@@ -10,7 +10,7 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
-"./master_temp.obj" \
+"./p5_master_temp.obj" \
 "../lnk_msp430fr2355.cmd" \
 $(GEN_CMDS__FLAG) \
 -lfrwp_init.a \
@@ -155,8 +155,8 @@ EELE465.05_Master_Temp.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "master_temp.obj" 
-	-$(RM) "master_temp.d" 
+	-$(RM) "p5_master_temp.obj" 
+	-$(RM) "p5_master_temp.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

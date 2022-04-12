@@ -1,1 +1,1 @@
-"./master_temp.obj" "../lnk_msp430fr2355.cmd" -lfrwp_init.a -llibc.a 
+"./p5_master_temp.obj" "../lnk_msp430fr2355.cmd" -lfrwp_init.a -llibc.a 

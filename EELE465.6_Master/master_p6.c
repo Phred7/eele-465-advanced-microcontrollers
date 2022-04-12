@@ -1,5 +1,9 @@
 #include <msp430.h> 
 
+#define ledAddress 0x042
+#define lcdAddress 0x069
+#define rtcAddress 0x068
+#define tempAddress 0x018
 
 /**
  * W. Ward and H. Ketteler
@@ -22,10 +26,6 @@ unsigned char ledDataToSend[2] = { 0x00, 0x00 };
 unsigned char rtcDataRecieved[2] = { 0x00, 0x00 };
 unsigned char tempDataRecieved[2] = { 0x00, 0x00 };
 unsigned char rtcInitialization[8] = { 0x00, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01, 0x97 }; // 00:00:00 Thursday 01/01/'97  {time_cal_addr, t.sec, t.min, t.hour, t.wday, t.mday, t.mon, t.year_s}
-const unsigned char ledAddress = 0x042;
-const unsigned char lcdAddress = 0x069;
-const unsigned char rtcAddress = 0x068;
-const unsigned char tempAddress = 0x018;
 float movingAverage = 0.0;
 float celsiusTemp = 0.0;
 
@@ -51,6 +51,8 @@ void configI2C(void) {
     UCB1CTLW0 &= ~UCSWRST;
 
     UCB1IE |= UCTXIE0;
+    UCB1IE |= UCRXIE0;
+    UCB1IE |= UCCLTOIE;
     //-- END Config. I2C Master
     return;
 }
@@ -128,11 +130,35 @@ int send_i2c(int slaveAddress) {
     }
 
     UCB1I2CSA = slaveAddress;
+    UCB0TBCNT = 0x01;
 
-    UCB1CTLW0 |= UCTXSTT;
-    while (UCB1CTLW0 & UCTXSTP);
+    UCB1CTLW0 |= UCTR;      // put into Tx mode
+    UCB1CTLW0 |= UCTXSTT;   // generate START cond.
+
+    while ((UCB1IFG & UCSTPIFG) == 0 ); // wait for STOP
+        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
     while (i2cTransmitCompleteFlag != 0x00);
+
     P1OUT ^= BIT0;
+
+    return 0;
+}
+
+int recieve_i2c(int slaveAddress) {
+
+    if (slaveAddress != ledAddress && slaveAddress != lcdAddress && slaveAddress != rtcAddress && slaveAddress != tempAddress) {
+        return 0;
+    }
+
+    UCB1I2CSA = slaveAddress;
+    UCB1TBCNT = 0x02;           // rx 8 bytes of data
+
+    UCB1CTLW0 &= ~UCTR;     // Put into Rx mode
+    UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
+
+    while ((UCB1IFG & UCSTPIFG) == 0 ); // wait for STOP
+        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
     return 0;
 }
@@ -289,7 +315,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
      * Make code call sendI2C to each device which sets the secondary's address.
      * Then use a switch on that address to know what to send and when to stop.
      */
-
+    volatile unsigned char r;
     switch (UCB1IV) {
     case 0x1C:
         /*
@@ -308,22 +334,32 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         /*
          * Data Received;
          */
+        switch (UCB1I2CSA) {
+        case rtcAddress:
+            break;
+        case tempAddress:
+            break;
+        default:
+            break;
+        }
         break;
     case 0x18:
         /*
          * Data Transmission;
          */
+        switch (UCB1I2CSA) {
+        case rtcAddress:
+            break;
+        case lcdAddress:
+            break;
+        case ledAddress:
+            break;
+        default:
+            break;
+        }
         break;
     default:
         break;
-    }
-
-    if (i2cReadWriteFlag == 0x00) {
-
-    } else if (i2cReadWriteFlag == 0x01) {
-
-    } else {
-
     }
 
     UCB1IFG &= ~UCTXIFG0;

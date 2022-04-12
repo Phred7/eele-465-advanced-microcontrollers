@@ -2,7 +2,7 @@
 <link_info>
    <banner>MSP430 Linker PC v20.2.5.LTS</banner>
    <copyright>Copyright (c) 2003-2018 Texas Instruments Incorporated</copyright>
-   <link_time>0x621db03d</link_time>
+   <link_time>0x62552625</link_time>
    <link_errors>0x0</link_errors>
    <output_file>EELE465.03_Keypad_ASM_Ward_Ketteler.out</output_file>
    <entry_point>
@@ -439,7 +439,7 @@
          <size>0x137</size>
          <input_file_ref idref="fl-2"/>
       </object_component>
-      <object_component id="oc-418">
+      <object_component id="oc-419">
          <name>.debug_line</name>
          <load_address>0x137</load_address>
          <run_address>0x137</run_address>
@@ -473,7 +473,7 @@
          <size>0x20</size>
          <input_file_ref idref="fl-2"/>
       </object_component>
-      <object_component id="oc-419">
+      <object_component id="oc-418">
          <name>.debug_aranges</name>
          <load_address>0x20</load_address>
          <run_address>0x20</run_address>
@@ -1118,7 +1118,7 @@
          <size>0x174</size>
          <contents>
             <object_component_ref idref="oc-6b"/>
-            <object_component_ref idref="oc-418"/>
+            <object_component_ref idref="oc-419"/>
          </contents>
       </logical_group>
       <logical_group id="lg-469" display="never" color="cyan">
@@ -1139,7 +1139,7 @@
          <size>0x40</size>
          <contents>
             <object_component_ref idref="oc-67"/>
-            <object_component_ref idref="oc-419"/>
+            <object_component_ref idref="oc-418"/>
          </contents>
       </logical_group>
       <logical_group id="lg-46d" display="never" color="cyan">

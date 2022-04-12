@@ -2,7 +2,7 @@
 <link_info>
    <banner>MSP430 Linker PC v20.2.5.LTS</banner>
    <copyright>Copyright (c) 2003-2018 Texas Instruments Incorporated</copyright>
-   <link_time>0x61fabba9</link_time>
+   <link_time>0x6255262f</link_time>
    <link_errors>0x0</link_errors>
    <output_file>haley_debug.out</output_file>
    <entry_point>
@@ -418,7 +418,7 @@
          <size>0x2</size>
          <input_file_ref idref="fl-2"/>
       </object_component>
-      <object_component id="oc-67">
+      <object_component id="oc-68">
          <name>.debug_info</name>
          <load_address>0x0</load_address>
          <run_address>0x0</run_address>
@@ -445,7 +445,7 @@
          <size>0xb3</size>
          <input_file_ref idref="fl-2"/>
       </object_component>
-      <object_component id="oc-418">
+      <object_component id="oc-41b">
          <name>.debug_line</name>
          <load_address>0xb3</load_address>
          <run_address>0xb3</run_address>
@@ -472,14 +472,14 @@
          <run_address>0x69</run_address>
          <size>0xf</size>
       </object_component>
-      <object_component id="oc-68">
+      <object_component id="oc-67">
          <name>.debug_aranges</name>
          <load_address>0x0</load_address>
          <run_address>0x0</run_address>
          <size>0x20</size>
          <input_file_ref idref="fl-2"/>
       </object_component>
-      <object_component id="oc-41b">
+      <object_component id="oc-418">
          <name>.debug_aranges</name>
          <load_address>0x20</load_address>
          <run_address>0x20</run_address>
@@ -1112,7 +1112,7 @@
          <run_address>0x0</run_address>
          <size>0x3fe</size>
          <contents>
-            <object_component_ref idref="oc-67"/>
+            <object_component_ref idref="oc-68"/>
             <object_component_ref idref="oc-419"/>
             <object_component_ref idref="oc-471"/>
          </contents>
@@ -1124,7 +1124,7 @@
          <size>0xf0</size>
          <contents>
             <object_component_ref idref="oc-6a"/>
-            <object_component_ref idref="oc-418"/>
+            <object_component_ref idref="oc-41b"/>
          </contents>
       </logical_group>
       <logical_group id="lg-469" display="never" color="cyan">
@@ -1144,8 +1144,8 @@
          <run_address>0x0</run_address>
          <size>0x40</size>
          <contents>
-            <object_component_ref idref="oc-68"/>
-            <object_component_ref idref="oc-41b"/>
+            <object_component_ref idref="oc-67"/>
+            <object_component_ref idref="oc-418"/>
          </contents>
       </logical_group>
       <logical_group id="lg-46d" display="never" color="cyan">
