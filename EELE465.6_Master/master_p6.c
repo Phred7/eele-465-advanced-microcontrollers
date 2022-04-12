@@ -20,14 +20,18 @@ unsigned char reset = 0x00;
 unsigned char i2cReadWriteFlag = 0x00;
 unsigned char i2cTransmitCompleteFlag = 0x00;
 unsigned char adcTemp[2] = { 0x00, 0x00 };
+unsigned char i2cTemp[2] = { 0x00, 0x00 };
 unsigned char adcReadings[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned char lcdDataToSend[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned char ledDataToSend[2] = { 0x00, 0x00 };
 unsigned char rtcDataRecieved[2] = { 0x00, 0x00 };
 unsigned char tempDataRecieved[2] = { 0x00, 0x00 };
 unsigned char rtcInitialization[8] = { 0x00, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01, 0x97 }; // 00:00:00 Thursday 01/01/'97  {time_cal_addr, t.sec, t.min, t.hour, t.wday, t.mday, t.mon, t.year_s}
-float movingAverage = 0.0;
-float celsiusTemp = 0.0;
+float adcMovingAverage = 0.0;
+float i2cMovingAverage = 0.0;
+float adcCelsiusTemp = 0.0;
+float i2cCelciusTemp = 0.0;
+float i2cTempReadings[9] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 void configI2C(void) {
     //-- Config. I2C Master
@@ -67,20 +71,26 @@ void configTimer(void){
     TB0CTL |= ID__8;                // ste d1 to 8
     TB0EX0 |= TBIDEX__7;            // set d2 to 7
     TB0CCR0 = 9366;                 // CCR0 = (1 s) w/ d2 = 7 1sec: 18732, .5sec = 9366 From pg 297 or TB
+    TB0CCR1 = 18732;
     return;
 }
 
-void enableTimerInterrupt(int timerCompareValue){
+void enableTimerInterrupts(int timerCompareValue0, int timerCompareValue1){
     // IRQs
     // Timer Compare IRQ
-    TB0CCR0 = timerCompareValue;
+    TB0CCR0 = timerCompareValue0;
+    TBOCCR1 = timerCompareValue1;
     TB0CCTL0 |= CCIE;               // Enable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
+    TB0CCTL1 |= CCIE;               // Enable TB0 CCR1 overflow IRQ
+    TB0CCTL1 &= ~CCIFG;             // Clear CCR1 flag
 }
 
-void disableTimerInterrupt() {
+void disableTimerInterrupts() {
     TB0CCTL0 &= ~CCIE;              // Disable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
+    TB0CCTL1 |= CCIE;               // Disable TB0 CCR1 overflow IRQ
+    TB0CCTL1 &= ~CCIFG;             // Clear CCR1 flag
     return;
 }
 
@@ -172,7 +182,7 @@ float getMovingAverage(float averageArray[]) {
     return sumTotal / n;
 }
 
-float convertADCTempToTwoByteTemp(float averageTemp){
+void convertADCTempToTwoByteTemp(float averageTemp){
     unsigned int val1;
     unsigned int val2;
     float voltConvert;
@@ -186,7 +196,24 @@ float convertADCTempToTwoByteTemp(float averageTemp){
     val2 = (voltConvert - val1) * 10;
     adcTemp[1] = val2;
 
-    return 0.0;
+    return;
+}
+
+void convertI2CTempToTwoByteTemp(float averageTemp){
+    unsigned int val1;
+    unsigned int val2;
+//    float voltConvert;
+    //voltConvert = (159.65 - (0.0689 * averageTemp));
+
+    // Above the decimal point
+    val1 = averageTemp;
+    i2cTemp[0] = val1;
+
+    // Below the decimal point
+    val2 = (averageTemp - val1) * 10;
+    i2cTemp[1] = val2;
+
+    return;
 }
 
 void configPeltier(void){
@@ -208,6 +235,11 @@ void peltierHeat(void) {
     P4OUT |= BIT1;
 }
 
+void peltierDisable() {
+    P4OUT &= ~BIT0;
+    P4OUT &= ~BIT1;
+}
+
 void captureStartReadings(void) {
     if(newADCReading > 0) {
         adcReadings[numberOfReadings] = newADCReading;
@@ -218,20 +250,27 @@ void captureStartReadings(void) {
 }
 
 void disable(void) {
-
+    peltierDisable();
 }
 
 void heatOnly(void) {
-
+    peltierHeat();
 }
 
 void coolOnly(void) {
-
+    peltierCool();
 }
 
 void matchTemperature(void) {
 
 }
+
+void updateDataToSend(void) {
+    adcMovingAverage = getMovingAverage(adcReadings);
+    convertADCTempToTwoByteTemp(adcMovingAverage);
+    i2cMovingAverage = getMovingAverage(i2cTempReadings);
+}
+
 
 
 int main(void)
@@ -262,6 +301,8 @@ int main(void)
     __enable_interrupt();
 
     // start RTC?
+
+    // enable timers? enableTimerInterrupts(9366, 18732);
 
     // wait for N from user. Dont convert N to Dec.
     while (n == 0x00) {
@@ -295,6 +336,7 @@ int main(void)
         } else {
             currentControlMode = 0x011;
         }
+        updateDataToSend();
     }
 
 	return 0;
@@ -368,6 +410,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
 //-- END I2C B1 ISR
 
 //-- Service TB0
+// Service CCR0
 #pragma vector = TIMER0_B0_VECTOR
 __interrupt void ISR_TB0_CCR0(void) {
     // Trigger I2C somehow?
@@ -377,6 +420,12 @@ __interrupt void ISR_TB0_CCR0(void) {
     newADCReading = ADCMEM0;                // Read ADC value
 
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
+}
+
+// Service CCR1
+#pragma vector = TIMER0_B1_VECTOR
+__interrupt void ISR_TB0CCR1(void) {
+    TB0CCTL1 &= ~CCIFG;         // Clear CCR1 flag
 }
 //-- END TB0 ISR
 
