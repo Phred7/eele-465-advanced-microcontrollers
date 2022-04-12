@@ -303,6 +303,19 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         UCB1CTLW0 &= ~UCSWRST;
         P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
         UCB1IE = r;             // Put IE back
+        break;
+    case 0x16:
+        /*
+         * Data Received;
+         */
+        break;
+    case 0x18:
+        /*
+         * Data Transmission;
+         */
+        break;
+    default:
+        break;
     }
 
     if (i2cReadWriteFlag == 0x00) {
