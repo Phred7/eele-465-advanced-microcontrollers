@@ -17,8 +17,10 @@ unsigned char n = 0x00;
 unsigned char numberOfReadings = 0x00;
 unsigned char newADCReading = 0x00;
 unsigned char reset = 0x00;
-unsigned char i2cReadWriteFlag = 0x00;
+unsigned char i2cTriggerOneSecond = 0x00;
+unsigned char i2cTriggerHalfSecond = 0x00;
 unsigned char i2cTransmitCompleteFlag = 0x00;
+unsigned char i2cReCompleteFlag = 0x00;
 unsigned char adcTemp[2] = { 0x00, 0x00 };
 unsigned char i2cTemp[2] = { 0x00, 0x00 };
 unsigned char lcdDataToSend[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -140,7 +142,24 @@ int send_i2c(int slaveAddress) {
     }
 
     UCB1I2CSA = slaveAddress;
-    UCB0TBCNT = 0x01;
+
+    switch (slaveAddress) {
+    case lcdAddress:
+        UCB0TBCNT = 8;
+        break;
+    case ledAddress:
+        UCB0TBCNT = 1;
+        break;
+    case rtcAddress:
+        UCB0TBCNT = 8;
+        break;
+    case tempAddress:
+        UCB0TBCNT = 1;
+        break;
+    default:
+        UCB0TBCNT = 1;
+        break;
+    }
 
     UCB1CTLW0 |= UCTR;      // put into Tx mode
     UCB1CTLW0 |= UCTXSTT;   // generate START cond.
@@ -162,7 +181,24 @@ int recieve_i2c(int slaveAddress) {
     }
 
     UCB1I2CSA = slaveAddress;
-    UCB1TBCNT = 0x02;           // rx 8 bytes of data
+
+    switch (slaveAddress) {
+    case lcdAddress:
+        UCB0TBCNT = 1;
+        break;
+    case ledAddress:
+        UCB0TBCNT = 1;
+        break;
+    case rtcAddress:
+        UCB0TBCNT = 2;
+        break;
+    case tempAddress:
+        UCB0TBCNT = 2;
+        break;
+    default:
+        UCB0TBCNT = 1;
+        break;
+    }
 
     UCB1CTLW0 &= ~UCTR;     // Put into Rx mode
     UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
@@ -340,6 +376,16 @@ int main(void)
      * if input is D disable the system
     */
     while(1) {
+
+        if (i2cTriggerHalfSecond == 0x01) {
+            i2cTriggerHalfSecond = 0x00;
+
+        }
+        if (i2cTriggerOneSecond == 0x02) {
+            i2cTriggerOneSecond = 0x00;
+
+        }
+
         if (currentControlMode == 0x081) {
             heatOnly();
         } else if (currentControlMode == 0x041) {
@@ -433,6 +479,9 @@ __interrupt void ISR_TB0_CCR0(void) {
     ADCCTL0 |= ADCENC | ADCSC;          // Start ADC
     while((ADCIFG & ADCIFG0) == 0);     // Wait for conversion completion
     newADCReading = ADCMEM0;                // Read ADC value
+
+    i2cTriggerHalfSecond = 0x01;
+    i2cTriggerOneSecond++;
 
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
 }
