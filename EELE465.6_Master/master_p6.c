@@ -71,26 +71,26 @@ void configTimer(void){
     TB0CTL |= ID__8;                // ste d1 to 8
     TB0EX0 |= TBIDEX__7;            // set d2 to 7
     TB0CCR0 = 9366;                 // CCR0 = (1 s) w/ d2 = 7 1sec: 18732, .5sec = 9366 From pg 297 or TB
-    TB0CCR1 = 18732;
+    //TB0CCR1 = 18732;
     return;
 }
 
-void enableTimerInterrupts(int timerCompareValue0, int timerCompareValue1){
+void enableTimerInterrupt(int timerCompareValue0){ // , int timerCompareValue1
     // IRQs
     // Timer Compare IRQ
     TB0CCR0 = timerCompareValue0;
-    TB0CCR1 = timerCompareValue1;
+    //TB0CCR1 = timerCompareValue1;
     TB0CCTL0 |= CCIE;               // Enable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
-    TB0CCTL1 |= CCIE;               // Enable TB0 CCR1 overflow IRQ
-    TB0CCTL1 &= ~CCIFG;             // Clear CCR1 flag
+//    TB0CCTL1 |= CCIE;               // Enable TB0 CCR1 overflow IRQ
+//    TB0CCTL1 &= ~CCIFG;             // Clear CCR1 flag
 }
 
-void disableTimerInterrupts() {
+void disableTimerInterrupt() {
     TB0CCTL0 &= ~CCIE;              // Disable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
-    TB0CCTL1 |= CCIE;               // Disable TB0 CCR1 overflow IRQ
-    TB0CCTL1 &= ~CCIFG;             // Clear CCR1 flag
+//    TB0CCTL1 |= CCIE;               // Disable TB0 CCR1 overflow IRQ
+//    TB0CCTL1 &= ~CCIFG;             // Clear CCR1 flag
     return;
 }
 
@@ -438,10 +438,10 @@ __interrupt void ISR_TB0_CCR0(void) {
 }
 
 // Service CCR1
-#pragma vector = TIMER0_B1_VECTOR
-__interrupt void ISR_TB0CCR1(void) {
-    TB0CCTL1 &= ~CCIFG;         // Clear CCR1 flag
-}
+//#pragma vector = TIMER0_B1_VECTOR
+//__interrupt void ISR_TB0CCR1(void) {
+//    TB0CCTL1 &= ~CCIFG;         // Clear CCR1 flag
+//}
 //-- END TB0 ISR
 
 #pragma vector = PORT3_VECTOR
