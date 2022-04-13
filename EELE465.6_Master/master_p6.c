@@ -389,6 +389,7 @@ int main(void)
             send_i2c(lcdAddress);
             send_i2c(ledAddress);
         }
+
         if (i2cTriggerOneSecond == 0x02) {
             i2cTriggerOneSecond = 0x00;
             recieve_i2c(rtcAddress);
