@@ -21,17 +21,17 @@ unsigned char i2cReadWriteFlag = 0x00;
 unsigned char i2cTransmitCompleteFlag = 0x00;
 unsigned char adcTemp[2] = { 0x00, 0x00 };
 unsigned char i2cTemp[2] = { 0x00, 0x00 };
-unsigned char adcReadings[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned char lcdDataToSend[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-unsigned char ledDataToSend[2] = { 0x00, 0x00 };
-unsigned char rtcDataRecieved[2] = { 0x00, 0x00 };
+unsigned char ledDataToSend[2] = { 0x00 };
+unsigned char rtcDataRecieved[2] = { 0x00, 0x00 };  // bcd {sec, min}
 unsigned char tempDataRecieved[2] = { 0x00, 0x00 };
 unsigned char rtcInitialization[8] = { 0x00, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01, 0x97 }; // 00:00:00 Thursday 01/01/'97  {time_cal_addr, t.sec, t.min, t.hour, t.wday, t.mday, t.mon, t.year_s}
 float adcMovingAverage = 0.0;
 float i2cMovingAverage = 0.0;
 float adcCelsiusTemp = 0.0;
 float i2cCelciusTemp = 0.0;
-float i2cTempReadings[9] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+float i2cTempReadings[10] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+float adcReadings[10] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 void configI2C(void) {
     //-- Config. I2C Master
@@ -79,7 +79,7 @@ void enableTimerInterrupts(int timerCompareValue0, int timerCompareValue1){
     // IRQs
     // Timer Compare IRQ
     TB0CCR0 = timerCompareValue0;
-    TBOCCR1 = timerCompareValue1;
+    TB0CCR1 = timerCompareValue1;
     TB0CCTL0 |= CCIE;               // Enable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
     TB0CCTL1 |= CCIE;               // Enable TB0 CCR1 overflow IRQ
@@ -265,10 +265,25 @@ void matchTemperature(void) {
 
 }
 
+void updateLCDDataToSend(void) {
+    lcdDataToSend[0] = n;
+    lcdDataToSend[1] = adcTemp[0];
+    lcdDataToSend[2] = adcTemp[1];
+    lcdDataToSend[3] = currentControlMode;
+    lcdDataToSend[4] = rtcDataRecieved[0];
+    lcdDataToSend[5] = rtcDataRecieved[1];
+    lcdDataToSend[6] = i2cTemp[0];
+    lcdDataToSend[7] = i2cTemp[1];
+    return;
+}
+
 void updateDataToSend(void) {
     adcMovingAverage = getMovingAverage(adcReadings);
     convertADCTempToTwoByteTemp(adcMovingAverage);
     i2cMovingAverage = getMovingAverage(i2cTempReadings);
+    convertI2CTempToTwoByteTemp(i2cMovingAverage);
+    updateLCDDataToSend();
+    ledDataToSend[0] = currentControlMode;  //update LED data to send.
 }
 
 
