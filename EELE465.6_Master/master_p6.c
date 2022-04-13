@@ -20,7 +20,7 @@ unsigned char reset = 0x00;
 unsigned char i2cTriggerOneSecond = 0x00;
 unsigned char i2cTriggerHalfSecond = 0x00;
 unsigned char i2cTransmitCompleteFlag = 0x00;
-unsigned char i2cReCompleteFlag = 0x00;
+unsigned char i2cReceiveCompleteFlag = 0x00;
 unsigned char adcTemp[2] = { 0x00, 0x00 };
 unsigned char i2cTemp[2] = { 0x00, 0x00 };
 unsigned char lcdDataToSend[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -161,6 +161,8 @@ int send_i2c(int slaveAddress) {
         break;
     }
 
+    i2cTransmitCompleteFlag = 0x01;
+
     UCB1CTLW0 |= UCTR;      // put into Tx mode
     UCB1CTLW0 |= UCTXSTT;   // generate START cond.
 
@@ -200,11 +202,15 @@ int recieve_i2c(int slaveAddress) {
         break;
     }
 
+    i2cReceiveCompleteFlag = 0x01;
+
     UCB1CTLW0 &= ~UCTR;     // Put into Rx mode
     UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
 
     while ((UCB1IFG & UCSTPIFG) == 0 ); // wait for STOP
         UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    while (i2cReceiveCompleteFlag != 0x00);
 
     return 0;
 }
@@ -379,11 +385,13 @@ int main(void)
 
         if (i2cTriggerHalfSecond == 0x01) {
             i2cTriggerHalfSecond = 0x00;
-
+            recieve_i2c(tempAddress);
+            send_i2c(lcdAddress);
+            send_i2c(ledAddress);
         }
         if (i2cTriggerOneSecond == 0x02) {
             i2cTriggerOneSecond = 0x00;
-
+            recieve_i2c(rtcAddress);
         }
 
         if (currentControlMode == 0x081) {
@@ -445,6 +453,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         default:
             break;
         }
+        i2cReceiveCompleteFlag = 0x00;
         break;
     case 0x18:
         /*
@@ -460,6 +469,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         default:
             break;
         }
+        i2cTransmitCompleteFlag = 0x00;
         break;
     default:
         break;
