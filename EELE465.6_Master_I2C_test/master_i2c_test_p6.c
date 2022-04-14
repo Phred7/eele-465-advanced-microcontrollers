@@ -29,16 +29,6 @@ float adcReadings[10] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 void configI2C(void) {
     //-- Config. I2C Master
     //-- Put eUSCI_B0 into SW reset
-    UCB1CTLW0 |= UCSWRST;
-
-    UCB1CTLW0 |= UCSSEL_3;
-    UCB1BRW = 10;
-    UCB1CTLW0 |= UCMODE_3;      // put into I2C mode
-    UCB1CTLW0 |= UCMST;         // put into master mode
-    UCB1CTLW0 |= UCTR;           // Put into Tx mode
-    UCB1I2CSA = 0x0068;         // secondary 0x68 RTC
-    UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
-    UCB1TBCNT = 1; // # of Bytes in Packet
 
     //-- Config I2C Ports
     P4SEL1 &= ~BIT7;            // P4.7 = SCL
@@ -46,11 +36,22 @@ void configI2C(void) {
     P4SEL1 &= ~BIT6;            // P4.6 = SDA
     P4SEL0 |= BIT6;
 
+    UCB1CTLW0 |= UCSWRST;
+
+    UCB1CTLW0 |= UCSSEL__SMCLK;
+    UCB1BRW = 10;
+    UCB1CTLW0 |= UCMODE_3 + UCSYNC + UCMST;      // put into I2C mode, , put into master mode
+//    UCB1CTLW0 |= UCTR;           // Put into Tx mode
+    UCB1I2CSA = 0x0068;         // secondary 0x68 RTC
+    UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
+    UCB1TBCNT = 1; // # of Bytes in Packet
+
     UCB1CTLW0 &= ~UCSWRST;
 
     UCB1IE |= UCRXIE0;
     UCB1IE |= UCTXIE0;
     UCB1IE |= UCCLTOIE;
+    UCB1IE |= UCNACKIE;
     //-- END Config. I2C Master
     return;
 }
@@ -100,7 +101,7 @@ int send_i2c(int slaveAddress) {
 
     switch (slaveAddress) {
     case lcdAddress:
-        UCB1TBCNT = 8;
+        UCB1TBCNT = 8; // 7
         break;
     case ledAddress:
         UCB1TBCNT = 1;
@@ -244,6 +245,10 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         i2cReceiveCompleteFlag = 0x00;
 //        UCB1IFG &= ~UCCLTOIFG;
         break;
+    case 0x04:
+        UCB1CTLW0 |= UCTXSTP;   // Generate STOP cond.
+        i2cTransmitCompleteFlag = 0x02;
+        break;
     case 0x16:
         /*
          * Data Received;
@@ -286,13 +291,12 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
 //            UCB1IFG &= ~UCTXIFG0;
             break;
         case lcdAddress:
+            UCB1TXBUF = lcdDataToSend[i2cDataCounter];
+            i2cDataCounter++;
+
             if (i2cDataCounter == 0x08) {
                 i2cDataCounter = 0x00;
                 i2cTransmitCompleteFlag = 0x00;
-//                UCB1IFG &= ~UCTXIFG0;
-            } else {
-                UCB1TXBUF = lcdDataToSend[i2cDataCounter];
-                i2cDataCounter++;
             }
             break;
         case ledAddress:

@@ -68,6 +68,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
         P1OUT ^= BIT0;
 //        UCB1CTLW1 &= ~UCRXIFG0;
         break;
+    default: break;
     }
     return;
 }

@@ -58,6 +58,7 @@ void configI2C(void) {
     UCB1IE |= UCTXIE0;
     UCB1IE |= UCRXIE0;
     UCB1IE |= UCCLTOIE;
+    UCB1IE |= UCNACKIE;
     //-- END Config. I2C Master
     return;
 }
@@ -262,6 +263,10 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         UCB1IE = r;             // Put IE back
         i2cTransmitCompleteFlag = 0x00;
         i2cReceiveCompleteFlag = 0x00;
+        break;
+    case 0x04:
+        UCB1CTLW0 |= UCTXSTP;   // Generate STOP cond.
+        i2cTransmitCompleteFlag = 0x02;
         break;
     case 0x16:
         /*
