@@ -80,9 +80,9 @@ void enableTimerInterrupt(int timerCompareValue0){ // , int timerCompareValue1
     // IRQs
     // Timer Compare IRQ
     TB0CCR0 = timerCompareValue0;
-    //TB0CCR1 = timerCompareValue1;
     TB0CCTL0 |= CCIE;               // Enable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
+//    TB0CCR1 = timerCompareValue1;
 //    TB0CCTL1 |= CCIE;               // Enable TB0 CCR1 overflow IRQ
 //    TB0CCTL1 &= ~CCIFG;             // Clear CCR1 flag
 }
@@ -95,45 +95,6 @@ void disableTimerInterrupt() {
     return;
 }
 
-void configADC(void){
-    P1SEL1 |= BIT2;                 // Configure A2 ADC
-    P1SEL0 |= BIT2;
-
-    PM5CTL0 &= ~LOCKLPM5;
-
-    // Configure ADC protocol
-    ADCCTL0 &= ~ADCSHT;
-    ADCCTL0 |= ADCSHT_2;
-    ADCCTL0 |= ADCON;
-
-    ADCCTL1 |= ADCSSEL_2;
-    ADCCTL1 |= ADCSHP;
-
-    ADCCTL2 &= ~ADCRES;
-    ADCCTL2 |= ADCRES_2;
-
-    ADCMCTL0 |= ADCINCH_2;
-    ADCIE |= ADCIE0;
-
-    return;
-}
-
-void configKeypad(void){
-    //-- Setup Ports for Keypad. 3.7 is LeftMost
-    P3DIR &= ~0b11110000;   // Set rows as inputs
-    P3OUT &= ~0b11110000;   // Set pull-down resistors for rows
-    P3DIR |=  0b00001111;   // Set columns as outputs
-    P3OUT |=  0b00001111;   // Set columns high
-    P3REN |= 0xFF;          // Enable pull-up/pull-down resistors on port 3
-    return;
-}
-
-int delay(int delay){
-    int zzz;
-    for(zzz=0; zzz<delay; zzz++){}
-    return 0;
-}
-
 int send_i2c(int slaveAddress) {
 
     if (slaveAddress != ledAddress && slaveAddress != lcdAddress && slaveAddress != rtcAddress && slaveAddress != tempAddress) {
@@ -144,19 +105,19 @@ int send_i2c(int slaveAddress) {
 
     switch (slaveAddress) {
     case lcdAddress:
-        UCB0TBCNT = 8;
+        UCB1TBCNT = 8;
         break;
     case ledAddress:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     case rtcAddress:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     case tempAddress:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     default:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     }
 
@@ -185,20 +146,21 @@ int recieve_i2c(int slaveAddress) {
 
     switch (slaveAddress) {
     case lcdAddress:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     case ledAddress:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     case rtcAddress:
         send_i2c(rtcAddress);
-        UCB0TBCNT = 2;
+        UCB1TBCNT = 2;
         break;
     case tempAddress:
-        UCB0TBCNT = 2;
+        //send_i2c(tempAddress);
+        UCB1TBCNT = 2;
         break;
     default:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     }
 
@@ -208,124 +170,12 @@ int recieve_i2c(int slaveAddress) {
     UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
 
     while ((UCB1IFG & UCSTPIFG) == 0 ); // wait for STOP
-        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
 
     while (i2cReceiveCompleteFlag != 0x00);
+    UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
     return 0;
-}
-
-float getMovingAverage(float averageArray[]) {
-    float sumTotal = 0.0;
-    int j;
-    for(j=0; j<n; j++) {
-        sumTotal += averageArray[j];
-    }
-    return sumTotal / n;
-}
-
-void convertADCTempToTwoByteTemp(float averageTemp){
-    unsigned int val1;
-    unsigned int val2;
-    float voltConvert;
-    voltConvert = (159.65 - (0.0689 * averageTemp));
-
-    // Above the decimal point
-    val1 = voltConvert;
-    adcTemp[0] = val1;
-
-    // Below the decimal point
-    val2 = (voltConvert - val1) * 10;
-    adcTemp[1] = val2;
-
-    return;
-}
-
-void convertI2CTempToTwoByteTemp(float averageTemp){
-    unsigned int val1;
-    unsigned int val2;
-//    float voltConvert;
-    //voltConvert = (159.65 - (0.0689 * averageTemp));
-
-    // Above the decimal point
-    val1 = averageTemp;
-    i2cTemp[0] = val1;
-
-    // Below the decimal point
-    val2 = (averageTemp - val1) * 10;
-    i2cTemp[1] = val2;
-
-    return;
-}
-
-void configPeltier(void){
-    P4DIR |= BIT0;        // P4.0
-    P4OUT &= ~BIT0;       // Init val = 0
-    P4DIR |= BIT1;        // P4.1
-    P4OUT &= ~BIT1;       // Init val = 0
-}
-
-void peltierCool(void) {
-    P4OUT &= ~BIT1;
-    // delay?
-    P4OUT |= BIT0;
-}
-
-void peltierHeat(void) {
-    P4OUT &= ~BIT0;
-    // delay?
-    P4OUT |= BIT1;
-}
-
-void peltierDisable() {
-    P4OUT &= ~BIT0;
-    P4OUT &= ~BIT1;
-}
-
-void captureStartReadings(void) {
-    if(newADCReading > 0) {
-        adcReadings[numberOfReadings] = newADCReading;
-        numberOfReadings++;
-        newADCReading = 0;
-    }
-    recieve_i2c(tempAddress);
-}
-
-void disable(void) {
-    peltierDisable();
-}
-
-void heatOnly(void) {
-    peltierHeat();
-}
-
-void coolOnly(void) {
-    peltierCool();
-}
-
-void matchTemperature(void) {
-
-}
-
-void updateLCDDataToSend(void) {
-    lcdDataToSend[0] = n;
-    lcdDataToSend[1] = adcTemp[0];
-    lcdDataToSend[2] = adcTemp[1];
-    lcdDataToSend[3] = currentControlMode;
-    lcdDataToSend[4] = rtcDataRecieved[1];
-    lcdDataToSend[5] = rtcDataRecieved[0];
-    lcdDataToSend[6] = i2cTemp[0];
-    lcdDataToSend[7] = i2cTemp[1];
-    return;
-}
-
-void updateDataToSend(void) {
-    adcMovingAverage = getMovingAverage(adcReadings);
-    convertADCTempToTwoByteTemp(adcMovingAverage);
-    i2cMovingAverage = getMovingAverage(i2cTempReadings);
-    convertI2CTempToTwoByteTemp(i2cMovingAverage);
-    updateLCDDataToSend();
-    ledDataToSend[0] = currentControlMode;  //update LED data to send.
 }
 
 
@@ -345,16 +195,6 @@ int main(void)
 
     configTimer();
 
-    configADC();
-
-    P3IE |= 0x0FF;
-    P3IES &= ~0x0FF;
-    P3IFG &= ~0x0FF;
-
-    configKeypad();
-
-    configPeltier();
-
     __enable_interrupt();
 
     // start RTC?
@@ -362,17 +202,6 @@ int main(void)
     // enable timers? enableTimerInterrupts(9366, 18732);
 
     // wait for N from user. Dont convert N to Dec.
-    while (n == 0x00) {
-        if (keypadValue > 0x00) {
-            n = keypadValue;
-        }
-    }
-
-    while (numberOfReadings < n) {
-        captureStartReadings();
-    }
-
-    numberOfReadings = n + 1;
 
     //A - 0x081, B - 0x041, C - 0x021, D - 0x011
     /* control peltier based on input mode
@@ -381,6 +210,9 @@ int main(void)
      * if input is C temperature match w/ room temperature
      * if input is D disable the system
     */
+
+    enableTimerInterrupt(9366);
+
     while(1) {
 
         if (i2cTriggerHalfSecond == 0x01) {
@@ -394,19 +226,6 @@ int main(void)
             i2cTriggerOneSecond = 0x00;
             recieve_i2c(rtcAddress);
         }
-
-        if (currentControlMode == 0x081) {
-            heatOnly();
-        } else if (currentControlMode == 0x041) {
-            coolOnly();
-        } else if (currentControlMode == 0x021) {
-            matchTemperature();
-        } else if (currentControlMode == 0x011) {
-            disable();
-        } else {
-            currentControlMode = 0x011;
-        }
-        updateDataToSend();
     }
 
 	return 0;
@@ -498,6 +317,10 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
             i2cDataCounter = 0x00;
             i2cTransmitCompleteFlag = 0x00;
             break;
+        case tempAddress:
+            UCB1TXBUF = 0x05;
+            i2cDataCounter = 0x00;
+            i2cTransmitCompleteFlag = 0x00;
         default:
             i2cDataCounter = 0x00;
             i2cTransmitCompleteFlag = 0x00;
@@ -520,50 +343,13 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
 __interrupt void ISR_TB0_CCR0(void) {
     // Trigger I2C somehow?
 
-    ADCCTL0 |= ADCENC | ADCSC;          // Start ADC
-    while((ADCIFG & ADCIFG0) == 0);     // Wait for conversion completion
-    newADCReading = ADCMEM0;                // Read ADC value
+//    ADCCTL0 |= ADCENC | ADCSC;          // Start ADC
+//    while((ADCIFG & ADCIFG0) == 0);     // Wait for conversion completion
+//    newADCReading = ADCMEM0;                // Read ADC value
 
     i2cTriggerHalfSecond = 0x01;
     i2cTriggerOneSecond++;
 
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
-}
-
-// Service CCR1
-//#pragma vector = TIMER0_B1_VECTOR
-//__interrupt void ISR_TB0CCR1(void) {
-//    TB0CCTL1 &= ~CCIFG;         // Clear CCR1 flag
-//}
-//-- END TB0 ISR
-
-#pragma vector = PORT3_VECTOR
-__interrupt void ISR_P3_Keypad(void) {
-    int buttonValue = 0b0;
-    buttonValue = P3IN;     // Move input to variable
-
-    P3DIR &= ~0b00001111;   // Set columns as input
-    P3OUT &= ~0b00001111;   // Set pull-down resistors for rows
-    P3DIR |=  0b11110000;   // Set rows as outputs
-    P3OUT |=  0b11110000;   // Set rows high
-
-    buttonValue = buttonValue & P3IN;   // Add both nibbles together
-
-    keypadValue = buttonValue;
-
-    if (keypadValue == 0x012) {
-        reset = 1;
-        P1OUT &= ~BIT0;
-        P6OUT &= ~BIT6;
-    }
-
-    //A - 0x081, B - 0x041, C - 0x021, D - 0x011
-    if (keypadValue == 0x081 || keypadValue == 0x041 || keypadValue == 0x021 || keypadValue == 0x011) {
-        currentControlMode = keypadValue;
-    }
-
-    configKeypad();
-
-    P3IFG &= ~0x0FF;
 }
 
