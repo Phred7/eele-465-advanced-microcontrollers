@@ -226,6 +226,12 @@ int main(void)
 //            send_i2c(lcdAddress);
 //            send_i2c(ledAddress);
             recieve_i2c(rtcAddress);
+            /*
+             * For RTC:
+             * Send Address with RD
+             * Send # of bytes to receive
+             * The receive bytes...
+             */
             P1OUT ^= BIT0;
         }
     }
