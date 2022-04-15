@@ -18,21 +18,18 @@ int main(void) {
 
     UCB0CTLW0 |= UCSWRST;
 
-    UCB0CTLW0 |= UCSSEL_3;
-    UCB0BRW = 1;
     UCB0CTLW0 |= UCMODE_3 + UCSYNC;           // I2C mode, sync mode (Do not set clock in slave mode)
 
     UCB0CTLW0 &= ~UCMST;
-    UCB0I2COA0 = 0x69 | UCOAEN;               // Slave address is 0x69; enable it
+    UCB0I2COA0 = 0x42 | UCOAEN;               // Slave address is 0x42; enable it
     UCB0CTLW0 &= ~UCTR;     // set to receive
-    UCB0CTLW1 &= ~UCSWACK;  // auto ACK
 
     UCB0CTLW0 &= ~UCSWRST;
 
     UCB0CTLW1 &= ~UCRXIFG0;
 
     UCB0IE |= UCRXIE0;
-    UCB0IE |= UCTXIE0;
+    UCB0IE |= UCCLTOIE;
     __enable_interrupt();
 
     P2OUT |= BIT0;
@@ -45,9 +42,27 @@ int main(void) {
 //-- Service I2C
 #pragma vector = EUSCI_B0_VECTOR
 __interrupt void EUSCI_B0_I2C_ISR(void) {
-    recievedData = UCB0RXBUF;
-    P2OUT ^= BIT0;
-    UCB0CTLW1 &= ~UCRXIFG0;
+    volatile unsigned char r;
+    switch (UCB0IV) {
+    case 0x1C:
+        /*
+         * Clock Low Time-Out;
+         * Adapted from https://e2e.ti.com/support/microcontrollers/msp-low-power-microcontrollers-group/msp430/f/msp-low-power-microcontroller-forum/869750/msp430fr2433-i2c-clock-low-timeout-interrupt
+         */
+        r = UCB0IE;             // Save current IE bits
+        P1SEL0 &= ~(BIT2);      // Generate NACK by releasing SDA
+        P1SEL0 &= ~(BIT3);      //  then SCL by disconnecting from the I2C
+        UCB0CTLW0 |= UCSWRST;   // Reset
+        UCB0CTLW0 &= ~UCSWRST;
+        P1SEL0 |=  (BIT2|BIT3); // Re-connect pins to I2C
+        UCB0IE = r;             // Put IE back
+//        UCB1IFG &= ~UCCLTOIFG;
+        break;
+    case 0x16:
+        recievedData = UCB0RXBUF;
+        P2OUT ^= BIT0;
+        break;
+    }
     return;
 }
 //-- END EUSCI_B0_I2C_ISR

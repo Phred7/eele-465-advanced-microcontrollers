@@ -19,7 +19,7 @@ unsigned char i2cDataCounter = 0x00;
 unsigned char adcTemp[2] = { 0x00, 0x00 };
 unsigned char i2cTemp[2] = { 0x00, 0x00 };
 unsigned char lcdDataToSend[8] = { 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x1F };
-unsigned char ledDataToSend[1] = { 0x00 };
+unsigned char ledDataToSend[1] = { 0x41 };
 unsigned char rtcDataRecieved[2] = { 0x00, 0x00 };  // bcd {sec, min}
 unsigned char tempDataRecieved[2] = { 0x00, 0x00 };
 unsigned char rtcInitialization[8] = { 0xAD, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01, 0x97 }; // 00:00:00 Thursday 01/01/'97  {time_cal_addr, t.sec, t.min, t.hour, t.wday, t.mday, t.mon, t.year_s}
@@ -121,6 +121,8 @@ int send_i2c(int slaveAddress) {
 
     UCB1CTLW0 |= UCTR;      // put into Tx mode
 
+    i2cDataCounter = 0x00;
+
     //UCB1CTLW0 &= ~UCSWRST;
 
     //UCB1IE |= UCTXIE0;
@@ -130,11 +132,11 @@ int send_i2c(int slaveAddress) {
     while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
         UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
-    while (i2cTransmitCompleteFlag != 0x00);
+//    while (i2cTransmitCompleteFlag != 0x00);
 
     //UCB1IE &= ~UCTXIE0;
-
-    P1OUT ^= BIT0;
+//
+//    P1OUT ^= BIT0;
 
     return 0;
 }
@@ -145,7 +147,7 @@ int recieve_i2c(int slaveAddress) {
         return 0;
     }
 
-    UCB1CTLW0 |= UCSWRST;
+    // UCB1CTLW0 |= UCSWRST;
 
     UCB1I2CSA = slaveAddress;
 
@@ -157,6 +159,16 @@ int recieve_i2c(int slaveAddress) {
         UCB1TBCNT = 1;
         break;
     case rtcAddress:
+        UCB1CTLW0 |= UCTR;     // Put into Tx mode
+        i2cDataCounter = 0x00;
+        UCB1TBCNT = 1;
+
+        UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
+
+        while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+            UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+        i2cDataCounter = 0x00;
         UCB1TBCNT = 2;
         break;
     case tempAddress:
@@ -168,17 +180,19 @@ int recieve_i2c(int slaveAddress) {
     }
 
     i2cReceiveCompleteFlag = 0x01;
-
+//
     UCB1CTLW0 &= ~UCTR;     // Put into Rx mode
 
-    UCB1CTLW0 &= ~UCSWRST;
+    i2cDataCounter = 0x00;
+
+    // UCB1CTLW0 &= ~UCSWRST;
 
     UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
 
     while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
         UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
-    while (i2cReceiveCompleteFlag != 0x00);
+//    while (i2cReceiveCompleteFlag != 0x00);
 
     P6OUT ^= BIT6;
 
@@ -209,7 +223,10 @@ int main(void)
     while(1) {
         if (i2cTriggerHalfSecond == 0x01) {
             i2cTriggerHalfSecond = 0x00;
-            send_i2c(lcdAddress);
+//            send_i2c(lcdAddress);
+//            send_i2c(ledAddress);
+            recieve_i2c(rtcAddress);
+            P1OUT ^= BIT0;
         }
     }
 
@@ -247,7 +264,9 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         break;
     case 0x04:
         UCB1CTLW0 |= UCTXSTP;   // Generate STOP cond.
-        i2cTransmitCompleteFlag = 0x02;
+        i2cTransmitCompleteFlag = 0x00;
+        i2cReceiveCompleteFlag = 0x00;
+        i2cDataCounter = 0x00;
         break;
     case 0x16:
         /*
@@ -285,7 +304,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
          */
         switch (UCB1I2CSA) {
         case rtcAddress:
-            UCB1TXBUF = 0x00;
+            UCB1TXBUF = 0x02;
             i2cDataCounter = 0x00;
             i2cTransmitCompleteFlag = 0x00;
 //            UCB1IFG &= ~UCTXIFG0;
