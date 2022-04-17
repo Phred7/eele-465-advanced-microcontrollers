@@ -10,6 +10,7 @@
  * 04/10/2022
  * I2C Main - System Controller
  */
+float convertTempRecievedToTempC(void);
 
 unsigned char keypadValue = 0x00;
 unsigned char currentControlMode = 0x11; //A - 0x081, B - 0x041, C - 0x021, D - 0x011
@@ -356,6 +357,7 @@ void captureStartReadings(void) {
     if(newADCReading > 0) {
         adcReadings[numberOfReadings] = newADCReading;
         recieve_i2c(tempAddress);
+        i2cTempReadings[numberOfReadings] = convertTempRecievedToTempC();
         numberOfReadings++;
         newADCReading = 0;
     }
@@ -392,6 +394,7 @@ void updateLCDDataToSend(void) {
 void updateDataToSend(void) {
     adcMovingAverage = getMovingAverage(adcReadings);
     convertADCTempToTwoByteTemp(adcMovingAverage);
+
     i2cMovingAverage = getMovingAverage(i2cTempReadings);
     convertI2CTempToTwoByteTemp(i2cMovingAverage);
     updateLCDDataToSend();
@@ -435,10 +438,25 @@ unsigned char convertNToDecimal(void) {
     return decN;
 }
 
+float convertTempRecievedToTempC(void) {
+    if (tempAddress == 0x18) {
+        unsigned char msb;
+        unsigned char lsb;
+        unsigned short data;
+        lsb = tempDataRecieved[1];
+        msb = tempDataRecieved[0];
+        msb = msb << 3;
+        msb = msb >> 3;
+        data = ((msb << 8) | lsb);
+        return ((float)data)/16;
+    } else {
+        return 69.420;
+    }
+}
 
 
-int main(void)
-{
+
+int main(void) {
 	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
 	
 	P1DIR |= BIT0;        // P1.0 LED 1
@@ -474,7 +492,7 @@ int main(void)
     enableTimerInterrupt(9366);
 
     unsigned char decN;
-    decN = convertNToDecimal(n);
+    decN = convertNToDecimal();
     while (numberOfReadings < decN) {
         captureStartReadings();
     }
@@ -689,8 +707,10 @@ __interrupt void ISR_P3_Keypad(void) {
     }
 
     //A - 0x081, B - 0x041, C - 0x021, D - 0x011
-    if (keypadValue == 0x081 || keypadValue == 0x041 || keypadValue == 0x021 || keypadValue == 0x011) {
-        currentControlMode = keypadValue;
+    if (n != 0x00) {
+        if (keypadValue == 0x081 || keypadValue == 0x041 || keypadValue == 0x021 || keypadValue == 0x011) {
+            currentControlMode = keypadValue;
+        }
     }
 
     configKeypad();
