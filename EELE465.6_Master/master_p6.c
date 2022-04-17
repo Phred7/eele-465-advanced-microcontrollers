@@ -37,15 +37,6 @@ float adcReadings[10] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 void configI2C(void) {
     //-- Config. I2C Master
     //-- Put eUSCI_B0 into SW reset
-    UCB1CTLW0 |= UCSWRST;
-    UCB1CTLW0 |= UCSSEL_3;
-    UCB1BRW = 10;
-    UCB1CTLW0 |= UCMODE_3;
-    UCB1CTLW0 |= UCMST;
-    UCB1CTLW0 |= UCTR;
-    UCB1I2CSA = 0x068;
-    UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
-    UCB1TBCNT = 3;              // # of Bytes in Packet
 
     //-- Config I2C Ports
     P4SEL1 &= ~BIT7;            // P4.7 = SCL
@@ -53,11 +44,23 @@ void configI2C(void) {
     P4SEL1 &= ~BIT6;            // P4.6 = SDA
     P4SEL0 |= BIT6;
 
+    UCB1CTLW0 |= UCSWRST;
+
+    UCB1CTLW0 |= UCSSEL__SMCLK;
+    UCB1BRW = 10;
+    UCB1CTLW0 |= UCMODE_3 + UCSYNC + UCMST;      // put into I2C mode, , put into master mode
+//    UCB1CTLW0 |= UCTR;           // Put into Tx mode
+    UCB1I2CSA = 0x0068;         // secondary 0x68 RTC
+    UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
+    UCB1TBCNT = 1; // # of Bytes in Packet
+
     UCB1CTLW0 &= ~UCSWRST;
 
-    UCB1IE |= UCTXIE0;
     UCB1IE |= UCRXIE0;
+    UCB1IE |= UCTXIE0;
     UCB1IE |= UCCLTOIE;
+    UCB1IE |= UCNACKIE;
+    UCB1IE |= UCBCNTIE;
     //-- END Config. I2C Master
     return;
 }
@@ -140,37 +143,48 @@ int send_i2c(int slaveAddress) {
         return 0;
     }
 
+    //UCB1CTLW0 |= UCSWRST;
+
     UCB1I2CSA = slaveAddress;
 
     switch (slaveAddress) {
     case lcdAddress:
-        UCB0TBCNT = 8;
+        UCB1TBCNT = 8; // 7
         break;
     case ledAddress:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     case rtcAddress:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     case tempAddress:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     default:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     }
 
     i2cTransmitCompleteFlag = 0x01;
 
     UCB1CTLW0 |= UCTR;      // put into Tx mode
+
+    i2cDataCounter = 0x00;
+
+    //UCB1CTLW0 &= ~UCSWRST;
+
+    //UCB1IE |= UCTXIE0;
+
     UCB1CTLW0 |= UCTXSTT;   // generate START cond.
 
-    while ((UCB1IFG & UCSTPIFG) == 0 ); // wait for STOP
+    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
         UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
-    while (i2cTransmitCompleteFlag != 0x00);
+//    while (i2cTransmitCompleteFlag != 0x00);
 
-    P1OUT ^= BIT0;
+    //UCB1IE &= ~UCTXIE0;
+//
+//    P1OUT ^= BIT0;
 
     return 0;
 }
@@ -181,36 +195,92 @@ int recieve_i2c(int slaveAddress) {
         return 0;
     }
 
+    // UCB1CTLW0 |= UCSWRST;
+
     UCB1I2CSA = slaveAddress;
 
     switch (slaveAddress) {
     case lcdAddress:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     case ledAddress:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     case rtcAddress:
-        send_i2c(rtcAddress);
-        UCB0TBCNT = 2;
         break;
     case tempAddress:
-        UCB0TBCNT = 2;
+        UCB1TBCNT = 2;
         break;
     default:
-        UCB0TBCNT = 1;
+        UCB1TBCNT = 1;
         break;
     }
 
-    i2cReceiveCompleteFlag = 0x01;
+    if (slaveAddress == rtcAddress) {
+        UCB1CTLW0 |= UCTR;   // Tx
 
-    UCB1CTLW0 &= ~UCTR;     // Put into Rx mode
-    UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
+        i2cDataCounter = 0x00;
+        UCB1TBCNT = 1;
 
-    while ((UCB1IFG & UCSTPIFG) == 0 ); // wait for STOP
-        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+        UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
 
-    while (i2cReceiveCompleteFlag != 0x00);
+        i2cTransmitCompleteFlag = 0x03;
+
+        while (((UCB1IFG & UCSTPIFG) == 0));
+            UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+        i2cDataCounter = 0x00;
+        UCB1TBCNT = 2;
+
+        UCB1CTLW0 &= ~UCTR;   // Rx
+
+        UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
+
+        while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+            UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    } else if (slaveAddress == tempAddress) {
+        UCB1CTLW0 |= UCTR;   // Tx
+
+        i2cDataCounter = 0x00;
+        UCB1TBCNT = 1;
+
+        UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
+
+        i2cTransmitCompleteFlag = 0x03;
+
+        while (((UCB1IFG & UCSTPIFG) == 0));
+            UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+        i2cDataCounter = 0x00;
+        UCB1TBCNT = 2;
+
+        UCB1CTLW0 &= ~UCTR;   // Rx
+
+        UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
+
+        while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+            UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    } else {
+
+        i2cReceiveCompleteFlag = 0x01;
+    //
+        UCB1CTLW0 &= ~UCTR;     // Put into Rx mode
+
+        i2cDataCounter = 0x00;
+
+        // UCB1CTLW0 &= ~UCSWRST;
+
+        UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
+
+        while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+            UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    //    while (i2cReceiveCompleteFlag != 0x00);
+    }
+
+    P6OUT ^= BIT6;
 
     return 0;
 }
@@ -285,10 +355,10 @@ void peltierDisable() {
 void captureStartReadings(void) {
     if(newADCReading > 0) {
         adcReadings[numberOfReadings] = newADCReading;
+        recieve_i2c(tempAddress);
         numberOfReadings++;
         newADCReading = 0;
     }
-    recieve_i2c(tempAddress);
 }
 
 void disable(void) {
@@ -328,6 +398,43 @@ void updateDataToSend(void) {
     ledDataToSend[0] = currentControlMode;  //update LED data to send.
 }
 
+unsigned char convertNToDecimal(void) {
+    unsigned char decN;
+    switch (n) {
+    case 0x088:
+        decN = 1;
+        break;
+    case 0x084:
+        decN = 2;
+        break;
+    case 0x082:
+        decN = 3;
+        break;
+    case 0x048:
+        decN = 4;
+        break;
+    case 0x044:
+        decN = 5;
+        break;
+    case 0x042:
+        decN = 6;
+        break;
+    case 0x028:
+        decN = 7;
+        break;
+    case 0x024:
+        decN = 8;
+        break;
+    case 0x022:
+        decN = 9;
+        break;
+    default:
+        decN = 0;
+        break;
+    }
+    return decN;
+}
+
 
 
 int main(void)
@@ -357,10 +464,6 @@ int main(void)
 
     __enable_interrupt();
 
-    // start RTC?
-
-    // enable timers? enableTimerInterrupts(9366, 18732);
-
     // wait for N from user. Dont convert N to Dec.
     while (n == 0x00) {
         if (keypadValue > 0x00) {
@@ -368,7 +471,11 @@ int main(void)
         }
     }
 
-    while (numberOfReadings < n) {
+    enableTimerInterrupt(9366);
+
+    unsigned char decN;
+    decN = convertNToDecimal(n);
+    while (numberOfReadings < decN) {
         captureStartReadings();
     }
 
@@ -419,10 +526,6 @@ int main(void)
 #pragma vector=EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
     /*
-     * Enable resend after a NAK with UCB1IV and clock low timeout
-     */
-
-    /*
      * Switch on address in UCB1I2CSA
      * Make code call sendI2C to each device which sets the secondary's address.
      * Then use a switch on that address to know what to send and when to stop.
@@ -443,6 +546,13 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         UCB1IE = r;             // Put IE back
         i2cTransmitCompleteFlag = 0x00;
         i2cReceiveCompleteFlag = 0x00;
+//        UCB1IFG &= ~UCCLTOIFG;
+        break;
+    case 0x04:
+        UCB1CTLW0 |= UCTXSTP;   // Generate STOP cond.
+        i2cTransmitCompleteFlag = 0x00;
+        i2cReceiveCompleteFlag = 0x00;
+        i2cDataCounter = 0x00;
         break;
     case 0x16:
         /*
@@ -472,7 +582,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
             i2cReceiveCompleteFlag = 0x00;
             break;
         }
-
+//        UCB1IFG &= ~UCRXIFG0;
         break;
     case 0x18:
         /*
@@ -483,33 +593,54 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
             UCB1TXBUF = 0x00;
             i2cDataCounter = 0x00;
             i2cTransmitCompleteFlag = 0x00;
+//            UCB1IFG &= ~UCTXIFG0;
             break;
         case lcdAddress:
+            UCB1TXBUF = lcdDataToSend[i2cDataCounter];
+            i2cDataCounter++;
+
             if (i2cDataCounter == 0x08) {
                 i2cDataCounter = 0x00;
                 i2cTransmitCompleteFlag = 0x00;
-            } else {
-                UCB1TXBUF = lcdDataToSend[i2cDataCounter];
-                i2cDataCounter++;
             }
             break;
         case ledAddress:
             UCB1TXBUF = ledDataToSend[0];
             i2cDataCounter = 0x00;
             i2cTransmitCompleteFlag = 0x00;
+//            UCB1IFG &= ~UCTXIFG0;
+            break;
+        case tempAddress:
+            if (tempAddress == 0x18) {
+                UCB1TXBUF = 0x05;
+            } else {
+                UCB1TXBUF = 0x00;
+            }
+            i2cDataCounter = 0x00;
+            i2cTransmitCompleteFlag = 0x00;
+//            UCB1IFG &= ~UCTXIFG0;
             break;
         default:
             i2cDataCounter = 0x00;
             i2cTransmitCompleteFlag = 0x00;
+//            UCB1IFG &= ~UCTXIFG0;
             break;
         }
 
+        break;
+    case 26: // Vector 26: BCNTIFG
+        if (i2cTransmitCompleteFlag == 0x03) {
+            unsigned int counter;
+            counter = UCB1STATW & UCBCNT;
+            if ((counter) > 0) {
+                i2cTransmitCompleteFlag = 0x00;
+            }
+        }
         break;
     default:
         break;
     }
 
-    UCB1IFG &= ~UCTXIFG0;
     return;
 }
 //-- END I2C B1 ISR
