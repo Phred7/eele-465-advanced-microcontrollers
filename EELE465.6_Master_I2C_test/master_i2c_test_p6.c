@@ -3,7 +3,7 @@
 #define ledAddress 0x042
 #define lcdAddress 0x069
 #define rtcAddress 0x068
-#define tempAddress 0x048
+#define tempAddress 0x018
 
 /**
  * W. Ward and H. Ketteler
@@ -18,8 +18,8 @@ unsigned char i2cReceiveCompleteFlag = 0x00;
 unsigned char i2cDataCounter = 0x00;
 unsigned char adcTemp[2] = { 0x00, 0x00 };
 unsigned char i2cTemp[2] = { 0x00, 0x00 };
-unsigned char lcdDataToSend[8] = { 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x1F };
-unsigned char ledDataToSend[1] = { 0x41 };
+unsigned char lcdDataToSend[8] = { 0x44, 0x22, 0x06, 0x81, 0x02, 0x47, 0x22, 0x06 };
+unsigned char ledDataToSend[1] = { 0x81 };
 unsigned char rtcDataRecieved[2] = { 0x00, 0x00 };  // bcd {sec, min}
 unsigned char tempDataRecieved[2] = { 0x00, 0x00 };
 unsigned char rtcInitialization[8] = { 0xAD, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01, 0x97 }; // 00:00:00 Thursday 01/01/'97  {time_cal_addr, t.sec, t.min, t.hour, t.wday, t.mday, t.mon, t.year_s}
@@ -262,8 +262,9 @@ int main(void)
     while(1) {
         if (i2cTriggerHalfSecond == 0x01) {
             i2cTriggerHalfSecond = 0x00;
-//            send_i2c(lcdAddress);
-//            send_i2c(ledAddress);
+            send_i2c(lcdAddress);
+            send_i2c(ledAddress);
+            recieve_i2c(rtcAddress);
             recieve_i2c(tempAddress);
             /*
              * For RTC:
@@ -370,10 +371,15 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
 //            UCB1IFG &= ~UCTXIFG0;
             break;
         case tempAddress:
-            UCB1TXBUF = 0x00;
+            if (tempAddress == 0x18) {
+                UCB1TXBUF = 0x05;
+            } else {
+                UCB1TXBUF = 0x00;
+            }
             i2cDataCounter = 0x00;
             i2cTransmitCompleteFlag = 0x00;
 //            UCB1IFG &= ~UCTXIFG0;
+            break;
         default:
             i2cDataCounter = 0x00;
             i2cTransmitCompleteFlag = 0x00;
