@@ -32,9 +32,17 @@ unsigned char rtcDataRecieved[2] = { 0x00, 0x00 };  // bcd {sec, min}
 unsigned char tempDataRecieved[2] = { 0x00, 0x00 };
 unsigned char rtcInitialization[8] = { 0xAD, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01, 0x97 }; // 00:00:00 Thursday 01/01/'97  {time_cal_addr, t.sec, t.min, t.hour, t.wday, t.mday, t.mon, t.year_s}
 float adcMovingAverage = 0.0;
+float adcMovingAverageC = 0.0;
 float i2cMovingAverage = 0.0;
 float i2cTempReadings[10] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 float adcReadings[10] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+
+// all in degrees Celcius
+unsigned char peltierControlLoopStatus = 0x00;
+float tempControlLoopUpperThreshold = 1.0;
+float tempControlLoopLowerThreshold = -1.0;
+unsigned char tempControlLoopThreshold = 0x00;  //0x00 == upper threshold, 0x01 == lower threshold
+float tempControlLoopSetPoint = 0.0;
 
 unsigned char timer_i2c_overflow = 0x00;
 
@@ -67,6 +75,7 @@ void configI2C(void) {
     UCB1IE |= UCCLTOIE;
     UCB1IE |= UCNACKIE;
     UCB1IE |= UCBCNTIE;
+    //UCB1IE |= UCBSTPIE;
     //-- END Config. I2C Master
     return;
 }
@@ -301,7 +310,7 @@ float getMovingAverage(float averageArray[]) {
     return sumTotal / decN;
 }
 
-void convertADCTempToTwoByteTemp(float averageTemp){
+float convertADCTempToTwoByteTemp(float averageTemp){
     unsigned int val1;
     unsigned int val2;
     float voltConvert;
@@ -315,7 +324,7 @@ void convertADCTempToTwoByteTemp(float averageTemp){
     val2 = (voltConvert - val1) * 10;
     adcTemp[1] = val2;
 
-    return;
+    return voltConvert;
 }
 
 void convertI2CTempToTwoByteTemp(float averageTemp){
@@ -343,18 +352,21 @@ void configPeltier(void){
 }
 
 void peltierCool(void) {
+    peltierControlLoopStatus = 0x41;
     P4OUT &= ~BIT1;
-    // delay?
+    delay(10);
     P4OUT |= BIT0;
 }
 
 void peltierHeat(void) {
+    peltierControlLoopStatus = 0x81;
     P4OUT &= ~BIT0;
-    // delay?
+    delay(10);
     P4OUT |= BIT1;
 }
 
 void peltierDisable() {
+    peltierControlLoopStatus = 0x11;
     P4OUT &= ~BIT0;
     P4OUT &= ~BIT1;
 }
@@ -370,6 +382,9 @@ void captureStartReadings(void) {
 }
 
 void disable(void) {
+    rtcDataRecieved[0] = 0x00;
+    rtcDataRecieved[1] = 0x00;
+    P5OUT &= ~BIT4;
     peltierDisable();
 }
 
@@ -382,14 +397,47 @@ void coolOnly(void) {
 }
 
 void matchTemperature(void) {
+    /*
+     * Implements dead-band/hysteresis
+     */
+//    tempControlLoopSetPoint = adcMovingAverageC;
+//
+//    if (tempControlLoopThreshold = 0.0) {
+//        // this acts like a base case...
+//        tempControlLoopThreshold = adcMovingAverageC + tempControlLoopUpperThreshold;
+//    }
 
+//    float threshold;
+//    if (tempControlLoopThreshold == 0x00) {
+//        threshold = adcMovingAverageC + tempControlLoopUpperThreshold;
+//    else if (tempControlLoopThreshold == 0x01) {
+//        threshold = adcMovingAverage + tempControlLoopLowerThreshold;
+//    } else {
+//        tempControlLoopThreshold = 0x00;
+//    }
+
+    if ((i2cMovingAverage <= (adcMovingAverageC + tempControlLoopUpperThreshold)) && (i2cMovingAverage >= (adcMovingAverageC + tempControlLoopLowerThreshold))) {
+        peltierDisable();
+    } else if (i2cMovingAverage > (adcMovingAverageC + tempControlLoopUpperThreshold)) {
+        peltierCool();
+    } else if (i2cMovingAverage < (adcMovingAverageC + tempControlLoopLowerThreshold)) {
+        peltierHeat();
+    } else {
+        peltierDisable();
+    }
+
+    // treat moving average as temp.
 }
 
 void updateLCDDataToSend(void) {
     lcdDataToSend[0] = n;
     lcdDataToSend[1] = adcTemp[0];
     lcdDataToSend[2] = adcTemp[1];
-    lcdDataToSend[3] = currentControlMode;
+    if (currentControlMode == 0x21) {
+        lcdDataToSend[3] = peltierControlLoopStatus;
+    } else {
+        lcdDataToSend[3] = currentControlMode;
+    }
     lcdDataToSend[4] = rtcDataRecieved[1];
     lcdDataToSend[5] = rtcDataRecieved[0];
     lcdDataToSend[6] = i2cTemp[0];
@@ -399,7 +447,7 @@ void updateLCDDataToSend(void) {
 
 void updateDataToSend(void) {
     adcMovingAverage = getMovingAverage(adcReadings);
-    convertADCTempToTwoByteTemp(adcMovingAverage);
+    adcMovingAverageC = convertADCTempToTwoByteTemp(adcMovingAverage);
     i2cMovingAverage = getMovingAverage(i2cTempReadings);
     convertI2CTempToTwoByteTemp(i2cMovingAverage);
     updateLCDDataToSend();
@@ -556,6 +604,10 @@ void resetTempSensor(void) {
         } else if (currentControlMode == 0x011) {
             disable();
         } else {
+            currentControlMode = 0x011;
+        }
+
+        if (rtcDataRecieved[1] >= 0x05) {
             currentControlMode = 0x011;
         }
     }
