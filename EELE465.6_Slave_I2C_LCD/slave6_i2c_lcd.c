@@ -395,12 +395,15 @@ void configI2C(void) {
     UCB1CTLW0 &= ~UCTR;                // set to receive
     UCB1CTLW1 &= ~UCSWACK;             // auto ACK
 
+    UCB1CTLW1 |= UCCLTO_2;
+
     UCB1CTLW0 &= ~UCSWRST;
 
     UCB1CTLW1 &= ~UCRXIFG0;
 
     UCB1IE |= UCRXIE0;
     UCB1IE |= UCTXIE0;
+    UCB1IE |= UCCLTOIE;
 
     return;
 }
@@ -503,15 +506,38 @@ __interrupt void ISR_TB0_CCR0(void){
 //-- I2C Service Routines
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void){
+    volatile unsigned char r;
+    switch (UCB1IV) {
+    case 0x1C:
+        /*
+         * Clock Low Time-Out;
+         * Adapted from https://e2e.ti.com/support/microcontrollers/msp-low-power-microcontrollers-group/msp430/f/msp-low-power-microcontroller-forum/869750/msp430fr2433-i2c-clock-low-timeout-interrupt
+         */
+        r = UCB1IE;             // Save current IE bits
+        P4SEL0 &= ~(BIT6);      // Generate NACK by releasing SDA
+        P4SEL0 &= ~(BIT7);      //  then SCL by disconnecting from the I2C
+        UCB1CTLW0 |= UCSWRST;   // Reset
+        UCB1CTLW0 &= ~UCSWRST;
+        P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
+        UCB1IE = r;             // Put IE back
+//        UCB1IFG &= ~UCCLTOIFG;
+        break;
+    case 0x16:
+        /*
+         * Data Received;
+         */
+        receivedData[receiveDataCounter] = UCB1RXBUF;
+        receiveDataCounter++;
 
-    receivedData[receiveDataCounter] = UCB1RXBUF;
-    receiveDataCounter++;
+        if (receiveDataCounter == 8){
+            receiveDataCounter = 0;
+        }
 
-    if (receiveDataCounter == 8){
-        receiveDataCounter = 0;
+        UCB1CTLW1 &= ~UCRXIFG0;
+        break;
+    default:
+        break;
     }
-
-    UCB1CTLW1 &= ~UCRXIFG0;
 
     return;
 }

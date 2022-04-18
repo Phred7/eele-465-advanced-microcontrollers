@@ -58,6 +58,8 @@ void configI2C(void) {
     UCB1CTLW1 |= UCASTP_2;      // Auto STOP when UCB0TBCNT reached
     UCB1TBCNT = 1; // # of Bytes in Packet
 
+    UCB1CTLW1 |= UCCLTO_1;
+
     UCB1CTLW0 &= ~UCSWRST;
 
     UCB1IE |= UCRXIE0;
@@ -120,6 +122,7 @@ void enableTimerInterrupt2(int timerCompareValue) {
 void disableTimerInterrupt2() {
     TB1CCTL0 |= CCIE;               // Disable TB0 CCR1 overflow IRQ
     TB1CCTL0 &= ~CCIFG;             // Clear CCR1 flag
+    TB1R = 0x00;
     return;
 }
 
@@ -256,8 +259,12 @@ int recieve_i2c(int slaveAddress) {
 
         i2cTransmitCompleteFlag = 0x03;
 
-        while (((UCB1IFG & UCSTPIFG) == 0));
+        enableTimerInterrupt2(4500);
+
+        while ((UCB1IFG & UCSTPIFG) == 0 || (timer_i2c_overflow != 0x00)); //wait for STOP
             UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+        disableTimerInterrupt2();
 
         i2cDataCounter = 0x00;
         UCB1TBCNT = 2;
@@ -272,8 +279,12 @@ int recieve_i2c(int slaveAddress) {
 
         i2cTransmitCompleteFlag = 0x03;
 
-        while (((UCB1IFG & UCSTPIFG) == 0));
+        enableTimerInterrupt2(4500);
+
+        while ((UCB1IFG & UCSTPIFG) == 0 || (timer_i2c_overflow != 0x00)); //wait for STOP
             UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+        disableTimerInterrupt2();
 
         i2cDataCounter = 0x00;
         UCB1TBCNT = 2;
@@ -286,10 +297,12 @@ int recieve_i2c(int slaveAddress) {
 
     UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
 
-    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+    enableTimerInterrupt2(4500);
+
+    while ((UCB1IFG & UCSTPIFG) == 0 || (timer_i2c_overflow != 0x00)); //wait for STOP
         UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
-    P6OUT ^= BIT6;
+    disableTimerInterrupt2();
 
     return 0;
 }
@@ -363,7 +376,7 @@ void peltierDisable() {
 
 void captureStartReadings(void) {
     if(newADCReading > 0) {
-        adcReadings[numberOfReadings] = newADCReading;
+        adcReadings[numberOfReadings] = newADCReading + 2000;
         recieve_i2c(tempAddress);
         i2cTempReadings[numberOfReadings] = convertTempRecievedToTempC();
         numberOfReadings++;
@@ -455,15 +468,20 @@ float convertTempRecievedToTempC(void) {
         msb = msb << 3;
         msb = msb >> 3;
         data = ((msb << 8) | lsb);
-        return (((float)data)/16) - 120;
+        return (((float)data)/16) - 100;
     } else {
         return 69.420;
     }
 }
 
+void resetTempSensor(void) {
+    P5OUT &= ~BIT4;
+    delay(100);
+    P5OUT |= BIT4;
+}
 
 
-int main(void) {
+ int main(void) {
 	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
 	
 	P1DIR |= BIT0;        // P1.0 LED 1
@@ -471,11 +489,16 @@ int main(void) {
     P6DIR |= BIT6;        // P6.6 LED 2
     P6OUT &= ~BIT6;        // Init val = 0
 
+    P5DIR |= BIT4;      // temp sensor pwr/rst
+    P5OUT &= ~BIT4;
+
     PM5CTL0 &= ~LOCKLPM5;       // disable LPM
 
     configI2C();
 
     configTimer();
+
+    configTimer2();
 
     configADC();
 
@@ -512,6 +535,9 @@ int main(void) {
      * if input is C temperature match w/ room temperature
      * if input is D disable the system
     */
+
+    resetTempSensor();
+
     while(1) {
 
         if (i2cTriggerHalfSecond == 0x01) {
@@ -521,7 +547,7 @@ int main(void) {
                 adcReadings[k] = adcReadings[k+1];
                 i2cTempReadings[k] = i2cTempReadings[k+1];
                 if (k == (decN-1)) {
-                    adcReadings[k] = newADCReading;
+                    adcReadings[k] = newADCReading + 2000;
                     i2cTempReadings[k] = convertTempRecievedToTempC();
                 }
             }
@@ -529,11 +555,13 @@ int main(void) {
             updateDataToSend();
             send_i2c(lcdAddress);
             send_i2c(ledAddress);
+            P6OUT ^= BIT6;
         }
 
         if (i2cTriggerOneSecond >= 0x02) {
             i2cTriggerOneSecond = 0x00;
             recieve_i2c(rtcAddress);
+            P1OUT ^= BIT0;
         }
 
         if (currentControlMode == 0x081) {
@@ -698,6 +726,7 @@ __interrupt void ISR_TB0_CCR0(void) {
 #pragma vector = TIMER1_B0_VECTOR
 __interrupt void ISR_T1B0_CCR0(void) {
     timer_i2c_overflow = 0x01;
+    // UCB1IFG |= UCCLTOIFG;
     TB1CCTL0 &= ~CCIFG;         // Clear CCR1 flag
 }
 //-- END TB0 ISR
@@ -726,6 +755,7 @@ __interrupt void ISR_P3_Keypad(void) {
     if (n != 0x00) {
         if (keypadValue == 0x081 || keypadValue == 0x041 || keypadValue == 0x021 || keypadValue == 0x011) {
             currentControlMode = keypadValue;
+            resetTempSensor();
         }
     }
 
