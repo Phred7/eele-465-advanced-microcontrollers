@@ -99,8 +99,6 @@ int main(void) {
 
     writeToLEDBar(0xAA);
 
-    receivedData = 0x41;       // For testing
-
     while(1){
         patternData = receivedData;
         if (patternData != 0x00){
@@ -169,7 +167,6 @@ int main(void) {
         if(patternData != 0x00){
             lastPatternData = patternData;
         }
-        receivedData = 0;        // For testing
     }
     return 0;
 }

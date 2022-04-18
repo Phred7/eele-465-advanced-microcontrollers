@@ -15,6 +15,7 @@ float convertTempRecievedToTempC(void);
 unsigned char keypadValue = 0x00;
 unsigned char currentControlMode = 0x11; //A - 0x081, B - 0x041, C - 0x021, D - 0x011
 unsigned char n = 0x00;
+unsigned char decN = 0;
 unsigned char numberOfReadings = 0x00;
 unsigned char newADCReading = 0x00;
 unsigned char reset = 0x00;
@@ -35,6 +36,8 @@ float i2cMovingAverage = 0.0;
 float i2cTempReadings[10] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 float adcReadings[10] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
+unsigned char timer_i2c_overflow = 0x00;
+
 void configI2C(void) {
     //-- Config. I2C Master
     //-- Put eUSCI_B0 into SW reset
@@ -48,7 +51,7 @@ void configI2C(void) {
     UCB1CTLW0 |= UCSWRST;
 
     UCB1CTLW0 |= UCSSEL__SMCLK;
-    UCB1BRW = 10;
+    UCB1BRW = 8; //10
     UCB1CTLW0 |= UCMODE_3 + UCSYNC + UCMST;      // put into I2C mode, , put into master mode
 //    UCB1CTLW0 |= UCTR;           // Put into Tx mode
     UCB1I2CSA = 0x0068;         // secondary 0x68 RTC
@@ -80,22 +83,43 @@ void configTimer(void){
     return;
 }
 
-void enableTimerInterrupt(int timerCompareValue0){ // , int timerCompareValue1
+void configTimer2(void){
+    // Timers
+    // TB1
+    TB1CTL |= TBCLR;                // Clear timer and divs
+    TB1CTL |= TBSSEL__ACLK;         // SRC = SMCLK
+    TB1CTL |= MC__UP;               // Mode = UP
+    TB1CTL |= CNTL_0;               // Length = 16-bit
+    TB1CTL |= ID__8;                // ste d1 to 8
+    TB1EX0 |= TBIDEX__8;            // set d2 to 8
+    TB1CCR0 = 9366;                 // CCR0 = (1 s) w/ d2 = 7 1sec: 18732, .5sec = 9366 From pg 297 or TB
+    //TB0CCR1 = 18732;
+    return;
+}
+
+void enableTimerInterrupt(int timerCompareValue){ // , int timerCompareValue1
     // IRQs
     // Timer Compare IRQ
-    TB0CCR0 = timerCompareValue0;
-    //TB0CCR1 = timerCompareValue1;
+    TB0CCR0 = timerCompareValue;
     TB0CCTL0 |= CCIE;               // Enable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
-//    TB0CCTL1 |= CCIE;               // Enable TB0 CCR1 overflow IRQ
-//    TB0CCTL1 &= ~CCIFG;             // Clear CCR1 flag
 }
 
 void disableTimerInterrupt() {
     TB0CCTL0 &= ~CCIE;              // Disable TB0 CCR0 overflow IRQ
     TB0CCTL0 &= ~CCIFG;             // Clear CCR0 flag
-//    TB0CCTL1 |= CCIE;               // Disable TB0 CCR1 overflow IRQ
-//    TB0CCTL1 &= ~CCIFG;             // Clear CCR1 flag
+    return;
+}
+
+void enableTimerInterrupt2(int timerCompareValue) {
+    TB1CCR0 = timerCompareValue;
+    TB1CCTL0 |= CCIE;               // Enable TB0 CCR1 overflow IRQ
+    TB1CCTL0 &= ~CCIFG;             // Clear CCR1 flag
+}
+
+void disableTimerInterrupt2() {
+    TB1CCTL0 |= CCIE;               // Disable TB0 CCR1 overflow IRQ
+    TB1CCTL0 &= ~CCIFG;             // Clear CCR1 flag
     return;
 }
 
@@ -178,8 +202,13 @@ int send_i2c(int slaveAddress) {
 
     UCB1CTLW0 |= UCTXSTT;   // generate START cond.
 
-    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+    enableTimerInterrupt2(4500);
+
+    while ((UCB1IFG & UCSTPIFG) == 0 || (timer_i2c_overflow != 0x00)); //wait for STOP
         UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    disableTimerInterrupt2();
+    timer_i2c_overflow = 0x00;
 
 //    while (i2cTransmitCompleteFlag != 0x00);
 
@@ -233,13 +262,6 @@ int recieve_i2c(int slaveAddress) {
         i2cDataCounter = 0x00;
         UCB1TBCNT = 2;
 
-        UCB1CTLW0 &= ~UCTR;   // Rx
-
-        UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
-
-        while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
-            UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
-
     } else if (slaveAddress == tempAddress) {
         UCB1CTLW0 |= UCTR;   // Tx
 
@@ -256,30 +278,16 @@ int recieve_i2c(int slaveAddress) {
         i2cDataCounter = 0x00;
         UCB1TBCNT = 2;
 
-        UCB1CTLW0 &= ~UCTR;   // Rx
-
-        UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
-
-        while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
-            UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
-
-    } else {
-
-        i2cReceiveCompleteFlag = 0x01;
-    //
-        UCB1CTLW0 &= ~UCTR;     // Put into Rx mode
-
-        i2cDataCounter = 0x00;
-
-        // UCB1CTLW0 &= ~UCSWRST;
-
-        UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
-
-        while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
-            UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
-
-    //    while (i2cReceiveCompleteFlag != 0x00);
     }
+
+    i2cTransmitCompleteFlag = 0x00;
+
+    UCB1CTLW0 &= ~UCTR;   // Rx
+
+    UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
+
+    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
     P6OUT ^= BIT6;
 
@@ -289,10 +297,10 @@ int recieve_i2c(int slaveAddress) {
 float getMovingAverage(float averageArray[]) {
     float sumTotal = 0.0;
     int j;
-    for(j=0; j<n; j++) {
+    for(j=0; j<decN; j++) {
         sumTotal += averageArray[j];
     }
-    return sumTotal / n;
+    return sumTotal / decN;
 }
 
 void convertADCTempToTwoByteTemp(float averageTemp){
@@ -394,7 +402,6 @@ void updateLCDDataToSend(void) {
 void updateDataToSend(void) {
     adcMovingAverage = getMovingAverage(adcReadings);
     convertADCTempToTwoByteTemp(adcMovingAverage);
-
     i2cMovingAverage = getMovingAverage(i2cTempReadings);
     convertI2CTempToTwoByteTemp(i2cMovingAverage);
     updateLCDDataToSend();
@@ -402,40 +409,40 @@ void updateDataToSend(void) {
 }
 
 unsigned char convertNToDecimal(void) {
-    unsigned char decN;
+    unsigned char decimalValue;
     switch (n) {
     case 0x088:
-        decN = 1;
+        decimalValue = 1;
         break;
     case 0x084:
-        decN = 2;
+        decimalValue = 2;
         break;
     case 0x082:
-        decN = 3;
+        decimalValue = 3;
         break;
     case 0x048:
-        decN = 4;
+        decimalValue = 4;
         break;
     case 0x044:
-        decN = 5;
+        decimalValue = 5;
         break;
     case 0x042:
-        decN = 6;
+        decimalValue = 6;
         break;
     case 0x028:
-        decN = 7;
+        decimalValue = 7;
         break;
     case 0x024:
-        decN = 8;
+        decimalValue = 8;
         break;
     case 0x022:
-        decN = 9;
+        decimalValue = 9;
         break;
     default:
-        decN = 0;
+        decimalValue = 0;
         break;
     }
-    return decN;
+    return decimalValue;
 }
 
 float convertTempRecievedToTempC(void) {
@@ -448,7 +455,7 @@ float convertTempRecievedToTempC(void) {
         msb = msb << 3;
         msb = msb >> 3;
         data = ((msb << 8) | lsb);
-        return ((float)data)/16;
+        return (((float)data)/16) - 120;
     } else {
         return 69.420;
     }
@@ -491,13 +498,12 @@ int main(void) {
 
     enableTimerInterrupt(9366);
 
-    unsigned char decN;
     decN = convertNToDecimal();
     while (numberOfReadings < decN) {
         captureStartReadings();
     }
 
-    numberOfReadings = n + 1;
+    numberOfReadings = decN + 1;
 
     //A - 0x081, B - 0x041, C - 0x021, D - 0x011
     /* control peltier based on input mode
@@ -509,13 +515,23 @@ int main(void) {
     while(1) {
 
         if (i2cTriggerHalfSecond == 0x01) {
-            i2cTriggerHalfSecond = 0x00;
             recieve_i2c(tempAddress);
+            unsigned int k;
+            for(k=0;k<decN;k++) {
+                adcReadings[k] = adcReadings[k+1];
+                i2cTempReadings[k] = i2cTempReadings[k+1];
+                if (k == (decN-1)) {
+                    adcReadings[k] = newADCReading;
+                    i2cTempReadings[k] = convertTempRecievedToTempC();
+                }
+            }
+            i2cTriggerHalfSecond = 0x00;
+            updateDataToSend();
             send_i2c(lcdAddress);
             send_i2c(ledAddress);
         }
 
-        if (i2cTriggerOneSecond == 0x02) {
+        if (i2cTriggerOneSecond >= 0x02) {
             i2cTriggerOneSecond = 0x00;
             recieve_i2c(rtcAddress);
         }
@@ -531,7 +547,6 @@ int main(void) {
         } else {
             currentControlMode = 0x011;
         }
-        updateDataToSend();
     }
 
 	return 0;
@@ -680,10 +695,11 @@ __interrupt void ISR_TB0_CCR0(void) {
 }
 
 // Service CCR1
-//#pragma vector = TIMER0_B1_VECTOR
-//__interrupt void ISR_TB0CCR1(void) {
-//    TB0CCTL1 &= ~CCIFG;         // Clear CCR1 flag
-//}
+#pragma vector = TIMER1_B0_VECTOR
+__interrupt void ISR_T1B0_CCR0(void) {
+    timer_i2c_overflow = 0x01;
+    TB1CCTL0 &= ~CCIFG;         // Clear CCR1 flag
+}
 //-- END TB0 ISR
 
 #pragma vector = PORT3_VECTOR
