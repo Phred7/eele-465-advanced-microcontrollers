@@ -395,7 +395,7 @@ void configI2C(void) {
     UCB1CTLW0 &= ~UCTR;                // set to receive
     UCB1CTLW1 &= ~UCSWACK;             // auto ACK
 
-    UCB1CTLW1 |= UCCLTO_2;
+    UCB1CTLW1 |= UCCLTO_2;              // clock low timeout delay. 5ms slower than master's delay.
 
     UCB1CTLW0 &= ~UCSWRST;
 

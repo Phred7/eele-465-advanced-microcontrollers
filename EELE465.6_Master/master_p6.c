@@ -85,19 +85,19 @@ void configTimer(void){
     return;
 }
 
-void configTimer2(void){
-    // Timers
-    // TB1
-    TB1CTL |= TBCLR;                // Clear timer and divs
-    TB1CTL |= TBSSEL__ACLK;         // SRC = SMCLK
-    TB1CTL |= MC__UP;               // Mode = UP
-    TB1CTL |= CNTL_0;               // Length = 16-bit
-    TB1CTL |= ID__8;                // ste d1 to 8
-    TB1EX0 |= TBIDEX__8;            // set d2 to 8
-    TB1CCR0 = 9366;                 // CCR0 = (1 s) w/ d2 = 7 1sec: 18732, .5sec = 9366 From pg 297 or TB
-    //TB0CCR1 = 18732;
-    return;
-}
+//void configTimer2(void){
+//    // Timers
+//    // TB1
+//    TB1CTL |= TBCLR;                // Clear timer and divs
+//    TB1CTL |= TBSSEL__ACLK;         // SRC = SMCLK
+//    TB1CTL |= MC__UP;               // Mode = UP
+//    TB1CTL |= CNTL_0;               // Length = 16-bit
+//    TB1CTL |= ID__8;                // ste d1 to 8
+//    TB1EX0 |= TBIDEX__8;            // set d2 to 8
+//    TB1CCR0 = 9366;                 // CCR0 = (1 s) w/ d2 = 7 1sec: 18732, .5sec = 9366 From pg 297 or TB
+//    //TB0CCR1 = 18732;
+//    return;
+//}
 
 void enableTimerInterrupt(int timerCompareValue){ // , int timerCompareValue1
     // IRQs
@@ -113,18 +113,18 @@ void disableTimerInterrupt() {
     return;
 }
 
-void enableTimerInterrupt2(int timerCompareValue) {
-    TB1CCR0 = timerCompareValue;
-    TB1CCTL0 |= CCIE;               // Enable TB0 CCR1 overflow IRQ
-    TB1CCTL0 &= ~CCIFG;             // Clear CCR1 flag
-}
-
-void disableTimerInterrupt2() {
-    TB1CCTL0 |= CCIE;               // Disable TB0 CCR1 overflow IRQ
-    TB1CCTL0 &= ~CCIFG;             // Clear CCR1 flag
-    TB1R = 0x00;
-    return;
-}
+//void enableTimerInterrupt2(int timerCompareValue) {
+//    TB1CCR0 = timerCompareValue;
+//    TB1CCTL0 |= CCIE;               // Enable TB0 CCR1 overflow IRQ
+//    TB1CCTL0 &= ~CCIFG;             // Clear CCR1 flag
+//}
+//
+//void disableTimerInterrupt2() {
+//    TB1CCTL0 |= CCIE;               // Disable TB0 CCR1 overflow IRQ
+//    TB1CCTL0 &= ~CCIFG;             // Clear CCR1 flag
+//    TB1R = 0x00;
+//    return;
+//}
 
 void configADC(void){
     P1SEL1 |= BIT2;                 // Configure A2 ADC
@@ -205,12 +205,9 @@ int send_i2c(int slaveAddress) {
 
     UCB1CTLW0 |= UCTXSTT;   // generate START cond.
 
-    enableTimerInterrupt2(4500);
-
-    while ((UCB1IFG & UCSTPIFG) == 0 || (timer_i2c_overflow != 0x00)); //wait for STOP
+    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
         UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
-    disableTimerInterrupt2();
     timer_i2c_overflow = 0x00;
 
 //    while (i2cTransmitCompleteFlag != 0x00);
@@ -259,12 +256,8 @@ int recieve_i2c(int slaveAddress) {
 
         i2cTransmitCompleteFlag = 0x03;
 
-        enableTimerInterrupt2(4500);
-
-        while ((UCB1IFG & UCSTPIFG) == 0 || (timer_i2c_overflow != 0x00)); //wait for STOP
+        while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
             UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
-
-        disableTimerInterrupt2();
 
         i2cDataCounter = 0x00;
         UCB1TBCNT = 2;
@@ -279,12 +272,8 @@ int recieve_i2c(int slaveAddress) {
 
         i2cTransmitCompleteFlag = 0x03;
 
-        enableTimerInterrupt2(4500);
-
-        while ((UCB1IFG & UCSTPIFG) == 0 || (timer_i2c_overflow != 0x00)); //wait for STOP
+        while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
             UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
-
-        disableTimerInterrupt2();
 
         i2cDataCounter = 0x00;
         UCB1TBCNT = 2;
@@ -297,12 +286,8 @@ int recieve_i2c(int slaveAddress) {
 
     UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
 
-    enableTimerInterrupt2(4500);
-
-    while ((UCB1IFG & UCSTPIFG) == 0 || (timer_i2c_overflow != 0x00)); //wait for STOP
+    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
         UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
-
-    disableTimerInterrupt2();
 
     return 0;
 }
@@ -497,8 +482,6 @@ void resetTempSensor(void) {
     configI2C();
 
     configTimer();
-
-    configTimer2();
 
     configADC();
 
@@ -723,12 +706,12 @@ __interrupt void ISR_TB0_CCR0(void) {
 }
 
 // Service CCR1
-#pragma vector = TIMER1_B0_VECTOR
-__interrupt void ISR_T1B0_CCR0(void) {
-    timer_i2c_overflow = 0x01;
-    // UCB1IFG |= UCCLTOIFG;
-    TB1CCTL0 &= ~CCIFG;         // Clear CCR1 flag
-}
+//#pragma vector = TIMER1_B0_VECTOR
+//__interrupt void ISR_T1B0_CCR0(void) {
+//    timer_i2c_overflow = 0x01;
+//    // UCB1IFG |= UCCLTOIFG;
+//    TB1CCTL0 &= ~CCIFG;         // Clear CCR1 flag
+//}
 //-- END TB0 ISR
 
 #pragma vector = PORT3_VECTOR

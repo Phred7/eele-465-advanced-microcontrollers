@@ -200,6 +200,7 @@ __interrupt void EUSCI_B0_I2C_ISR(void) {
          */
         receivedData = UCB0RXBUF;
         UCB0CTLW1 &= ~UCRXIFG0;
+        P2OUT ^= BIT0;
         break;
     default:
         break;
