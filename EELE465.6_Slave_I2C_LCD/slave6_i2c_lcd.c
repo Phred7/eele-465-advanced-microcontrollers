@@ -530,11 +530,11 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         receiveDataCounter++;
 
         if (receiveDataCounter == 8){
+            P6OUT ^= BIT6;
             receiveDataCounter = 0;
         }
 
         UCB1CTLW1 &= ~UCRXIFG0;
-        P6OUT ^= BIT6;
         break;
     default:
         break;
