@@ -3,7 +3,8 @@
 #define ledAddress 0x042
 #define lcdAddress 0x069
 #define rtcAddress 0x068
-#define tempAddress 0x018
+//#define tempAddress 0x018
+#define tempAddress 0x048
 
 /**
  * W. Ward and H. Ketteler
@@ -17,7 +18,7 @@ unsigned char currentControlMode = 0x11; //A - 0x081, B - 0x041, C - 0x021, D - 
 unsigned char n = 0x00;
 unsigned char decN = 0;
 unsigned char numberOfReadings = 0x00;
-unsigned char newADCReading = 0x00;
+unsigned int newADCReading = 0x00;
 unsigned char reset = 0x00;
 unsigned char i2cTriggerOneSecond = 0x00;
 unsigned char i2cTriggerHalfSecond = 0x00;
@@ -39,8 +40,8 @@ float adcReadings[10] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 // all in degrees Celcius
 unsigned char peltierControlLoopStatus = 0x00;
-float tempControlLoopUpperThreshold = 1.0;
-float tempControlLoopLowerThreshold = -1.0;
+float tempControlLoopUpperThreshold = 0.5;
+float tempControlLoopLowerThreshold = -0.5;
 unsigned char tempControlLoopThreshold = 0x00;  //0x00 == upper threshold, 0x01 == lower threshold
 float tempControlLoopSetPoint = 0.0;
 
@@ -347,13 +348,16 @@ void convertI2CTempToTwoByteTemp(float averageTemp){
 void configPeltier(void){
     P4DIR |= BIT0;        // P4.0
     P4OUT &= ~BIT0;       // Init val = 0
-    P4DIR |= BIT1;        // P4.1
-    P4OUT &= ~BIT1;       // Init val = 0
+//    P4DIR |= BIT1;        // P4.1
+//    P4OUT &= ~BIT1;       // Init val = 0
+    P4DIR |= BIT5;        // P4.1
+    P4OUT &= ~BIT5;       // Init val = 0
 }
 
 void peltierCool(void) {
     peltierControlLoopStatus = 0x41;
-    P4OUT &= ~BIT1;
+//    P4OUT &= ~BIT1;
+    P4OUT &= ~BIT5;
     delay(10);
     P4OUT |= BIT0;
 }
@@ -362,18 +366,20 @@ void peltierHeat(void) {
     peltierControlLoopStatus = 0x81;
     P4OUT &= ~BIT0;
     delay(10);
-    P4OUT |= BIT1;
+//    P4OUT |= BIT1;
+    P4OUT |= BIT5;
 }
 
 void peltierDisable() {
     peltierControlLoopStatus = 0x11;
     P4OUT &= ~BIT0;
-    P4OUT &= ~BIT1;
+//    P4OUT &= ~BIT1;
+    P4OUT &= ~BIT5;
 }
 
 void captureStartReadings(void) {
     if(newADCReading > 0) {
-        adcReadings[numberOfReadings] = newADCReading + 2000;
+        adcReadings[numberOfReadings] = newADCReading;
         recieve_i2c(tempAddress);
         i2cTempReadings[numberOfReadings] = convertTempRecievedToTempC();
         numberOfReadings++;
@@ -433,11 +439,7 @@ void updateLCDDataToSend(void) {
     lcdDataToSend[0] = n;
     lcdDataToSend[1] = adcTemp[0];
     lcdDataToSend[2] = adcTemp[1];
-    if (currentControlMode == 0x21) {
-        lcdDataToSend[3] = peltierControlLoopStatus;
-    } else {
-        lcdDataToSend[3] = currentControlMode;
-    }
+    lcdDataToSend[3] = currentControlMode;
     lcdDataToSend[4] = rtcDataRecieved[1];
     lcdDataToSend[5] = rtcDataRecieved[0];
     lcdDataToSend[6] = i2cTemp[0];
@@ -451,7 +453,11 @@ void updateDataToSend(void) {
     i2cMovingAverage = getMovingAverage(i2cTempReadings);
     convertI2CTempToTwoByteTemp(i2cMovingAverage);
     updateLCDDataToSend();
-    ledDataToSend[0] = currentControlMode;  //update LED data to send.
+    if (currentControlMode == 0x21) {
+        ledDataToSend[0] = peltierControlLoopStatus;
+    } else {
+        ledDataToSend[0] = currentControlMode;
+    }
 }
 
 unsigned char convertNToDecimal(void) {
@@ -503,7 +509,15 @@ float convertTempRecievedToTempC(void) {
         data = ((msb << 8) | lsb);
         return (((float)data)/16) - 100;
     } else {
-        return 69.420;
+        unsigned char msb;
+        unsigned char lsb;
+        unsigned short data;
+        lsb = tempDataRecieved[1];
+        msb = tempDataRecieved[0];
+        lsb = lsb >> 3;
+        data = ((msb << 5) | lsb);
+        return (((float)(data))*.0625);
+        // return 69.420;
     }
 }
 
@@ -571,14 +585,14 @@ void resetTempSensor(void) {
 
     while(1) {
 
-        if (i2cTriggerHalfSecond == 0x01) {
+        if (i2cTriggerHalfSecond >= 0x01) {
             recieve_i2c(tempAddress);
             unsigned int k;
             for(k=0;k<decN;k++) {
                 adcReadings[k] = adcReadings[k+1];
                 i2cTempReadings[k] = i2cTempReadings[k+1];
                 if (k == (decN-1)) {
-                    adcReadings[k] = newADCReading + 2000;
+                    adcReadings[k] = newADCReading;
                     i2cTempReadings[k] = convertTempRecievedToTempC();
                 }
             }
