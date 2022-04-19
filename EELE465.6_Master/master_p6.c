@@ -395,25 +395,6 @@ void disable(void) {
 }
 
 void matchTemperature(void) {
-    /*
-     * Implements dead-band/hysteresis
-     */
-//    tempControlLoopSetPoint = adcMovingAverageC;
-//
-//    if (tempControlLoopThreshold = 0.0) {
-//        // this acts like a base case...
-//        tempControlLoopThreshold = adcMovingAverageC + tempControlLoopUpperThreshold;
-//    }
-
-//    float threshold;
-//    if (tempControlLoopThreshold == 0x00) {
-//        threshold = adcMovingAverageC + tempControlLoopUpperThreshold;
-//    else if (tempControlLoopThreshold == 0x01) {
-//        threshold = adcMovingAverage + tempControlLoopLowerThreshold;
-//    } else {
-//        tempControlLoopThreshold = 0x00;
-//    }
-
     if ((i2cMovingAverage <= (adcMovingAverageC + tempControlLoopUpperThreshold)) && (i2cMovingAverage >= (adcMovingAverageC + tempControlLoopLowerThreshold))) {
         peltierDisable();
     } else if (i2cMovingAverage > (adcMovingAverageC + tempControlLoopUpperThreshold)) {
@@ -423,8 +404,6 @@ void matchTemperature(void) {
     } else {
         peltierDisable();
     }
-
-    // treat moving average as temp.
 }
 
 void updateLCDDataToSend(void) {
@@ -654,6 +633,9 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
 //        UCB1IFG &= ~UCCLTOIFG;
         break;
     case 0x04:
+        /*
+         * NACK Received;
+         */
         UCB1CTLW0 |= UCTXSTP;   // Generate STOP cond.
         i2cTransmitCompleteFlag = 0x00;
         i2cReceiveCompleteFlag = 0x00;
