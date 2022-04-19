@@ -3,8 +3,8 @@
 #define ledAddress 0x042
 #define lcdAddress 0x069
 #define rtcAddress 0x068
-//#define tempAddress 0x018
-#define tempAddress 0x048
+#define tempAddress 0x018
+//#define tempAddress 0x048
 
 /**
  * W. Ward and H. Ketteler
@@ -348,32 +348,32 @@ void convertI2CTempToTwoByteTemp(float averageTemp){
 void configPeltier(void){
     P4DIR |= BIT0;        // P4.0
     P4OUT &= ~BIT0;       // Init val = 0
-//    P4DIR |= BIT1;        // P4.1
-//    P4OUT &= ~BIT1;       // Init val = 0
-    P4DIR |= BIT5;        // P4.1
+    P4DIR |= BIT1;        // P4.1
+    P4OUT &= ~BIT1;       // Init val = 0
+    P4DIR |= BIT5;        // P4.5
     P4OUT &= ~BIT5;       // Init val = 0
 }
 
 void peltierCool(void) {
     peltierControlLoopStatus = 0x41;
-//    P4OUT &= ~BIT1;
     P4OUT &= ~BIT5;
     delay(10);
+    P4OUT |= BIT1;
     P4OUT |= BIT0;
 }
 
 void peltierHeat(void) {
     peltierControlLoopStatus = 0x81;
     P4OUT &= ~BIT0;
+    P4OUT &= ~BIT1;
     delay(10);
-//    P4OUT |= BIT1;
     P4OUT |= BIT5;
 }
 
 void peltierDisable() {
     peltierControlLoopStatus = 0x11;
     P4OUT &= ~BIT0;
-//    P4OUT &= ~BIT1;
+    P4OUT &= ~BIT1;
     P4OUT &= ~BIT5;
 }
 
@@ -392,14 +392,6 @@ void disable(void) {
     rtcDataRecieved[1] = 0x00;
     P5OUT &= ~BIT4;
     peltierDisable();
-}
-
-void heatOnly(void) {
-    peltierHeat();
-}
-
-void coolOnly(void) {
-    peltierCool();
 }
 
 void matchTemperature(void) {
@@ -507,7 +499,7 @@ float convertTempRecievedToTempC(void) {
         msb = msb << 3;
         msb = msb >> 3;
         data = ((msb << 8) | lsb);
-        return (((float)data)/16) - 100;
+        return (((float)data)/16) - 129;
     } else {
         unsigned char msb;
         unsigned char lsb;
@@ -521,7 +513,7 @@ float convertTempRecievedToTempC(void) {
     }
 }
 
-void resetTempSensor(void) {
+void resetRTC(void) {
     P5OUT &= ~BIT4;
     delay(100);
     P5OUT |= BIT4;
@@ -557,6 +549,9 @@ void resetTempSensor(void) {
 
     __enable_interrupt();
 
+    ledDataToSend[0] = 0x11;
+    send_i2c(ledAddress);
+
     // wait for N from user. Dont convert N to Dec.
     while (n == 0x00) {
         if (keypadValue > 0x00) {
@@ -581,7 +576,7 @@ void resetTempSensor(void) {
      * if input is D disable the system
     */
 
-    resetTempSensor();
+    resetRTC();
 
     while(1) {
 
@@ -610,9 +605,9 @@ void resetTempSensor(void) {
         }
 
         if (currentControlMode == 0x081) {
-            heatOnly();
+            peltierHeat();
         } else if (currentControlMode == 0x041) {
-            coolOnly();
+            peltierCool();
         } else if (currentControlMode == 0x021) {
             matchTemperature();
         } else if (currentControlMode == 0x011) {
@@ -804,7 +799,7 @@ __interrupt void ISR_P3_Keypad(void) {
     if (n != 0x00) {
         if (keypadValue == 0x081 || keypadValue == 0x041 || keypadValue == 0x021 || keypadValue == 0x011) {
             currentControlMode = keypadValue;
-            resetTempSensor();
+            resetRTC();
         }
     }
 
