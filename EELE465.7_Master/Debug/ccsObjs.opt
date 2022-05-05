@@ -1,0 +1,1 @@
+"./final_project_master.obj" "../lnk_msp430fr2355.cmd" -llibc.a 
