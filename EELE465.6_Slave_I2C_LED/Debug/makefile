@@ -11,6 +11,7 @@ GEN_CMDS__FLAG :=
 
 ORDERED_OBJS += \
 "./slave6_i2c_led.obj" \
+"./slave6_i2c_led_test.obj" \
 "../lnk_msp430fr2310.cmd" \
 $(GEN_CMDS__FLAG) \
 -llibc.a \
@@ -154,8 +155,8 @@ EELE465.6_Slave_I2C_LED.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "slave6_i2c_led.obj" 
-	-$(RM) "slave6_i2c_led.d" 
+	-$(RM) "slave6_i2c_led.obj" "slave6_i2c_led_test.obj" 
+	-$(RM) "slave6_i2c_led.d" "slave6_i2c_led_test.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

@@ -1,1 +1,1 @@
-"./slave6_i2c_led.obj" "../lnk_msp430fr2310.cmd" -llibc.a 
+"./slave6_i2c_led.obj" "./slave6_i2c_led_test.obj" "../lnk_msp430fr2310.cmd" -llibc.a 
