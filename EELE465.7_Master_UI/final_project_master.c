@@ -3,8 +3,25 @@
  * 05/05/2022
  * I2C Main - System Controller - EELE465 Final Project
  *
- * Port Definitions
- *
+ * Port Definitions (MSP2355)
+ *  #01 - P1.2 - ADC, potentiometer
+ *  #04 - SBWTCK
+ *  #05 - SBWTDIO
+ *  #06 - Vcc
+ *  #07 - GND
+ *  #12 - P4.7 - SCL
+ *  #13 - P4.6 - SDA
+ *  #25 - P4.1 - Switch
+ *  #26 - P4.0 - Button
+ *  #35 - P3.7 - Keypad
+ *  #36 - P3.6 - Keypad
+ *  #37 - P3.5 - Keypad
+ *  #38 - P3.4 - Keypad
+ *  #39 - P5.4 - System Reset
+ *  #44 - P3.3 - Keypad
+ *  #45 - P3.2 - Keypad
+ *  #46 - P3.1 - Keypad
+ *  #47 - P3.0 - Keypad
  */
 
 #include <msp430.h> 
