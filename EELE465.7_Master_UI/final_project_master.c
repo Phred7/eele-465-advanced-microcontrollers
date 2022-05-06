@@ -5,12 +5,14 @@
  *
  * Port Definitions (MSP2355)
  *  #01 - P1.2 - ADC, potentiometer
+ *  #03 - P1.0 - indicator LED
  *  #04 - SBWTCK
  *  #05 - SBWTDIO
  *  #06 - Vcc
  *  #07 - GND
  *  #12 - P4.7 - SCL
  *  #13 - P4.6 - SDA
+ *  #16 - P6.6 - indicator LED
  *  #25 - P4.1 - Switch
  *  #26 - P4.0 - Button
  *  #35 - P3.7 - Keypad
@@ -22,6 +24,8 @@
  *  #45 - P3.2 - Keypad
  *  #46 - P3.1 - Keypad
  *  #47 - P3.0 - Keypad
+ *
+ *
  */
 
 #include <msp430.h> 
