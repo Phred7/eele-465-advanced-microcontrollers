@@ -57,6 +57,8 @@ unsigned char teensyDataRecieved[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 unsigned int i2cDataCounter = 0;
 
 // Data values TODO: use last values to update LED patterns.
+unsigned char targetFlywheelVelocityHex[4] = { 0x00, 0x00, 0x00, 0x00 };
+unsigned char actualFlywheelVelocityHex[4] = { 0x00, 0x00, 0x00, 0x00 };
 long targetFlywheelVelocity = 0;
 long lastTargetFlywheelVelocity = 0;
 long actualFlywheelVelocity = 0;
@@ -232,38 +234,80 @@ void constructFlywheelTargetVelocity(void) {
     /*
      * TODO: Convert keypad input into i2c packets and populate i2c packets
      */
+    teensyDataToSend[0] = targetFlywheelVelocityHex[0];
+    teensyDataToSend[1] = targetFlywheelVelocityHex[1];
+    teensyDataToSend[2] = targetFlywheelVelocityHex[2];
+    teensyDataToSend[3] = targetFlywheelVelocityHex[3];
 
+    lcdDataToSend[4] = targetFlywheelVelocityHex[0];
+    lcdDataToSend[5] = targetFlywheelVelocityHex[1];
+    lcdDataToSend[6] = targetFlywheelVelocityHex[2];
+    lcdDataToSend[7] = targetFlywheelVelocityHex[3];
 }
 
 void deconstructFlywheelActualVelocity(void) {
     /*
-     * TODO: Deconstruct i2c packet into usable data and populate other i2c packets
+     * TODO: Deconstruct i2c packet into usable data and populate other i2c packets... DOES this actually need to happen or does it just need to populate other packets?
      */
+    actualFlywheelVelocityHex[0] = teensyDataRecieved[0];
+    actualFlywheelVelocityHex[1] = teensyDataRecieved[1];
+    actualFlywheelVelocityHex[2] = teensyDataRecieved[2];
+    actualFlywheelVelocityHex[3] = teensyDataRecieved[3];
+
+    lcdDataToSend[0] = teensyDataRecieved[0];
+    lcdDataToSend[1] = teensyDataRecieved[1];
+    lcdDataToSend[2] = teensyDataRecieved[2];
+    lcdDataToSend[3] = teensyDataRecieved[3];
 }
 
 void constructRotationalTargetAngle(void) {
     /*
      * TODO: Use pot to map to rotational angle and populate i2c packets
      */
+    unsigned char targetRotationalPositionHex[4] = { 0x00, 0x00, 0x00, 0x00 };
+    // TODO: actually map pot value...
+
+    teensyDataToSend[4] = targetRotationalPositionHex[0];
+    teensyDataToSend[5] = targetRotationalPositionHex[1];
+    teensyDataToSend[6] = targetRotationalPositionHex[2];
+    teensyDataToSend[7] = targetRotationalPositionHex[3];
+
+    lcdDataToSend[12] = targetRotationalPositionHex[0];
+    lcdDataToSend[13] = targetRotationalPositionHex[1];
+    lcdDataToSend[14] = targetRotationalPositionHex[2];
+    lcdDataToSend[15] = targetRotationalPositionHex[3];
 }
 
 void deconstructRotationalActualAngle(void) {
     /*
-     * TODO: Deconstruct i2c packet into usable data and populate other i2c packets
+     * TODO: deconstruct i2c packet into usable data and populate other i2c packets
      */
+    lcdDataToSend[8] = teensyDataRecieved[4];
+    lcdDataToSend[9] = teensyDataRecieved[5];
+    lcdDataToSend[10] = teensyDataRecieved[6];
+    lcdDataToSend[11] = teensyDataRecieved[7];
+}
+
+void constructIndexer(void) {
+    /*
+     * TODO: updates packets to reflect the state of the indexer... an LED too?
+     */
+    teensyDataToSend[9] = switchValue;
 }
 
 void constructLEDIndicatorPattern(void) {
     /*
-     * TODO: use current, last and target flywheel data values to determine what pattern to display on the LEDs
+     * TODO: use current, last and target fly-wheel data values to determine what pattern to display on the LEDs
      */
 }
 
-void convertKeypadEntryToFlywheelTargetVelocity(void) {
+
+void convertFourCharToFlywheelTargetVelocity(void) {
     /*
-     * TODO: this may be unncessesary seing that we literally just need to send it to different places...
+     * TODO: this may be unnecessary seeing that we literally just need to send it to different places...
      */
     targetFlywheelVelocity = 0.0;
+    memcpy(targetFlywheelVelocityHex, keypadEntries, sizeof(keypadEntries));
     int arrayIndex;
     for(arrayIndex = 0; arrayIndex < 4; arrayIndex++) {
         int decimalValue = 0;
@@ -347,7 +391,7 @@ int main(void)
         }
 
         if (publishKeypadValueFlag == 0x01) {
-            convertKeypadEntryToFlywheelTargetVelocity();
+            convertFourCharToFlywheelTargetVelocity();
             publishKeypadValueFlag = 0x00;
         }
 
