@@ -29,12 +29,14 @@
  */
 
 #include <msp430.h> 
+#include <string.h>
+#include <math.h>
 
 #define ledAddress 0x042
 #define lcdAddress 0x069
 #define teensyAddress 0x031
 
-// Nubmer of packets for each slave to send/recieve
+// Number of packets for each slave to send/receive
 #define ledPackets 1
 #define lcdPackets 16
 #define teensySendPackets 9
@@ -45,6 +47,7 @@ unsigned char reset = 0x00;
 unsigned char keypadValue = 0x00;
 unsigned char keypadEntryCounter = 0x00;
 unsigned char keypadEntries[4] = { 0x00, 0x00, 0x00, 0x00 };
+unsigned char publishKeypadValueFlag = 0x00;
 
 // I2C globals
 unsigned char lcdDataToSend[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -53,9 +56,11 @@ unsigned char teensyDataToSend[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 unsigned char teensyDataRecieved[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned int i2cDataCounter = 0;
 
-// Data values
-double targetFlywheelVelocity = 0.0;
-double actualFlywheelVelocity = 0.0;
+// Data values TODO: use last values to update LED patterns.
+long targetFlywheelVelocity = 0;
+long lastTargetFlywheelVelocity = 0;
+long actualFlywheelVelocity = 0;
+long lastActualFlywheelVelcity = 0;
 double targetRotationalPosition = 0.0;
 double actualRotationalPosition = 0.0;
 double adcValue = 0.0;
@@ -168,8 +173,6 @@ void configKeypad(void){
     return;
 }
 
-//  #25 - P4.1 - Switch
-//  #26 - P4.0 - Button
 void configButton(void) {
     P4DIR &= ~BIT0;
     P4REN |= BIT0;          // Enable pull-up/pull-down resistor
@@ -194,6 +197,11 @@ void configIndicatorLEDs(void) {
     P6OUT &= ~BIT6;        // Init val = 0
 }
 
+void configSystemResetPin(void) {
+    P5DIR |= BIT4;
+    P5OUT &= ~BIT4;
+}
+
 //-- END Configuration -------------------------
 
 //-- Logic -------------------------
@@ -204,19 +212,98 @@ int delay(int delay){
     return 0;
 }
 
-void systemReset() {
+void systemReset(void) {
     /*
-     * TODO
+     * TODO: Ensure all values are reset properly
      */
-    lcdDataToSend[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    ledDataToSend[1] = { 0x00 };
-    teensyDataToSend[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    teensyDataRecieved[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    memset(lcdDataToSend, 0x00, 16);
+    memset(ledDataToSend, 0x00, 1);
+    memset(teensyDataToSend, 0x00, 9);
+    memset(teensyDataRecieved, 0x00, 8);
+
     targetFlywheelVelocity = 0.0;
     actualFlywheelVelocity = 0.0;
     targetRotationalPosition = 0.0;
     actualRotationalPosition = 0.0;
     adcValue = 0.0;
+}
+
+void constructFlywheelTargetVelocity(void) {
+    /*
+     * TODO: Convert keypad input into i2c packets and populate i2c packets
+     */
+
+}
+
+void deconstructFlywheelActualVelocity(void) {
+    /*
+     * TODO: Deconstruct i2c packet into usable data and populate other i2c packets
+     */
+}
+
+void constructRotationalTargetAngle(void) {
+    /*
+     * TODO: Use pot to map to rotational angle and populate i2c packets
+     */
+}
+
+void deconstructRotationalActualAngle(void) {
+    /*
+     * TODO: Deconstruct i2c packet into usable data and populate other i2c packets
+     */
+}
+
+void constructLEDIndicatorPattern(void) {
+    /*
+     * TODO: use current, last and target flywheel data values to determine what pattern to display on the LEDs
+     */
+}
+
+void convertKeypadEntryToFlywheelTargetVelocity(void) {
+    /*
+     * TODO: this may be unncessesary seing that we literally just need to send it to different places...
+     */
+    targetFlywheelVelocity = 0.0;
+    int arrayIndex;
+    for(arrayIndex = 0; arrayIndex < 4; arrayIndex++) {
+        int decimalValue = 0;
+        switch(keypadEntries[arrayIndex]) {
+        case 0x088:
+            decimalValue = 1;
+            break;
+        case 0x084:
+            decimalValue = 2;
+            break;
+        case 0x082:
+            decimalValue = 3;
+            break;
+        case 0x048:
+            decimalValue = 4;
+            break;
+        case 0x044:
+            decimalValue = 5;
+            break;
+        case 0x042:
+            decimalValue = 6;
+            break;
+        case 0x028:
+            decimalValue = 7;
+            break;
+        case 0x024:
+            decimalValue = 8;
+            break;
+        case 0x022:
+            decimalValue = 9;
+            break;
+        default:
+            decimalValue = 0;
+            break;
+        }
+        targetFlywheelVelocity += (decimalValue) * pow(10, (3 - arrayIndex));
+    }
+    /*
+     * TODO: self explanatory... update fly-wheel target velocity double
+     */
 }
 
 //-- END Logic -------------------------
@@ -236,6 +323,7 @@ int main(void)
     configSwitch();
     configButton();
     configIndicatorLEDs();
+    configSystemResetPin();
 
     __enable_interrupt();
 
@@ -249,10 +337,18 @@ int main(void)
             systemReset();
             /*
              * TODO
-             * Put LCD, LED and Teensy into reset states.
+             * Put LCD, LED and Teensy into reset states by setting reset pin high
              */
-            while (resetButtonValue = 0x00) {
+            while (resetButtonValue == 0x00) {
+                /*
+                 * TODO: constantly send stops? Or nacks?
+                 */
             }
+        }
+
+        if (publishKeypadValueFlag == 0x01) {
+            convertKeypadEntryToFlywheelTargetVelocity();
+            publishKeypadValueFlag = 0x00;
         }
 
         if (timerInterruptFlag >= 0x01) { // triggers on ~0.1sec
@@ -315,12 +411,16 @@ __interrupt void ISR_P3_Keypad(void) {
 
     if (keypadValue == 0x012) {
         keypadEntryCounter = 0;
-        keypadEntries = { 0x00, 0x00, 0x00, 0x00 };
+        memset(keypadEntries, 0x00, 4);
+        publishKeypadValueFlag = 0x01;
     } else if (keypadValue == 0x18) {
         keypadEntryCounter = 0;
-        /*
-         * TODO: publish rpm value.
-         */
+        publishKeypadValueFlag = 0x01;
+    } else if (keypadValue != 0x81 && keypadValue != 0x41 && keypadValue != 0x21 && keypadValue != 0x11 && publishKeypadValueFlag == 0x00) { // not A, B, C, D and publishKeypadValueFlag is not active (is 0x00)
+        if (keypadEntryCounter < 4) {
+            keypadEntries[keypadEntryCounter] = keypadValue;
+            keypadEntryCounter++;
+        }
     }
 
     // Reset Keypad Config
@@ -373,6 +473,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         UCB1CTLW0 &= ~UCSWRST;
         P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
         UCB1IE = r;             // Put IE back
+        // TODO: reset any counters and flags.
         break;
     case 0x04:
         /*
