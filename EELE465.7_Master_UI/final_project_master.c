@@ -214,7 +214,16 @@ int delay(int delay){
     return 0;
 }
 
-void systemReset(void) {
+double round(double d)
+{
+    return floor(d + 0.5);
+}
+
+unsigned char convertDoubleToHex(double d) {
+    return (unsigned char)((int)d);
+}
+
+void systemResetRestart(void) {
     /*
      * TODO: Ensure all values are reset properly
      */
@@ -228,6 +237,10 @@ void systemReset(void) {
     targetRotationalPosition = 0.0;
     actualRotationalPosition = 0.0;
     adcValue = 0.0;
+}
+
+void systemReset(void) {
+    P5OUT |= BIT4;
 }
 
 void constructFlywheelTargetVelocity(void) {
@@ -262,20 +275,44 @@ void deconstructFlywheelActualVelocity(void) {
 
 void constructRotationalTargetAngle(void) {
     /*
-     * TODO: Use pot to map to rotational angle and populate i2c packets
+     * Use pot/ADC to map to rotational angle and populate i2c packets
      */
-    unsigned char targetRotationalPositionHex[4] = { 0x00, 0x00, 0x00, 0x00 };
-    // TODO: actually map pot value...
+    double output_end = 360.0;
+    double output_start = 0.0;
+    double input_end = 4080.0;
+    double input_start = 0.0;
+    double slope = 1.0 * (output_end - output_start) / (input_end - input_start);
+    targetRotationalPosition = output_start + round(slope * (adcValue - input_start));
 
-    teensyDataToSend[4] = targetRotationalPositionHex[0];
-    teensyDataToSend[5] = targetRotationalPositionHex[1];
-    teensyDataToSend[6] = targetRotationalPositionHex[2];
-    teensyDataToSend[7] = targetRotationalPositionHex[3];
+    if (targetRotationalPosition > 360) {
+        targetRotationalPosition = 360.0;
+    } else if (targetRotationalPosition < 0) {
+        targetRotationalPosition = 0.0;
+    }
 
-    lcdDataToSend[12] = targetRotationalPositionHex[0];
-    lcdDataToSend[13] = targetRotationalPositionHex[1];
-    lcdDataToSend[14] = targetRotationalPositionHex[2];
-    lcdDataToSend[15] = targetRotationalPositionHex[3];
+    unsigned char high;
+    unsigned char mid;
+    unsigned char low;
+    unsigned char dec;
+
+    double tempAngle = targetRotationalPosition;
+    high = (unsigned char)((int)(tempAngle/100));
+    tempAngle = (tempAngle-(high*100));
+    mid = convertDoubleToHex(tempAngle/10);
+    tempAngle = (tempAngle - (mid*10));
+    low = convertDoubleToHex(tempAngle);
+    tempAngle = (tempAngle-low);
+    dec = convertDoubleToHex(round(tempAngle*10));
+
+    teensyDataToSend[4] = high;
+    teensyDataToSend[5] = mid;
+    teensyDataToSend[6] = low;
+    teensyDataToSend[7] = dec;
+
+    lcdDataToSend[12] = high;
+    lcdDataToSend[13] = mid;
+    lcdDataToSend[14] = low;
+    lcdDataToSend[15] = dec;
 }
 
 void deconstructRotationalActualAngle(void) {
@@ -286,13 +323,16 @@ void deconstructRotationalActualAngle(void) {
     lcdDataToSend[9] = teensyDataRecieved[5];
     lcdDataToSend[10] = teensyDataRecieved[6];
     lcdDataToSend[11] = teensyDataRecieved[7];
+
+    actualRotationalPosition = (((int)teensyDataRecieved[4]) * 100) + (((int)teensyDataRecieved[5]) * 10) + (((int)teensyDataRecieved[6])) + (((int)teensyDataRecieved[7]) * 0.1);
+
 }
 
 void constructIndexer(void) {
     /*
      * TODO: updates packets to reflect the state of the indexer... an LED too?
      */
-    teensyDataToSend[9] = switchValue;
+    teensyDataToSend[8] = switchValue;
 }
 
 void constructLEDIndicatorPattern(void) {
@@ -388,6 +428,9 @@ int main(void)
                  * TODO: constantly send stops? Or nacks?
                  */
             }
+            delay(1000);
+            systemResetRestart();
+            enableTimerInterrupt(1873);
         }
 
         if (publishKeypadValueFlag == 0x01) {
@@ -397,6 +440,7 @@ int main(void)
 
         if (timerInterruptFlag >= 0x01) { // triggers on ~0.1sec
             timerInterruptFlag = 0x00;
+            constructRotationalTargetAngle();
             /*
              * TODO
              * convert Pot reading to degrees
@@ -404,14 +448,13 @@ int main(void)
              * Update LCD
              * Update LEDs
              */
-        }
-
-        if (timerInterruptCounter >= 0x05) { // triggers on ~0.5sec
-            timerInterruptCounter = 0x00;
-            /*
-             * TODO
-             * Update Teensy
-             */
+            if (timerInterruptCounter >= 0x05) { // triggers on ~0.5sec
+               timerInterruptCounter = 0x00;
+               /*
+                * TODO
+                * Update Teensy
+                */
+           }
         }
     }
 
@@ -433,6 +476,7 @@ __interrupt void ISR_TB0_CCR0(void) {
 
     switchValue = (P4IN & BIT1) >> 1;
 
+    timerInterruptFlag = 0x01;
     timerInterruptCounter++;
 
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
