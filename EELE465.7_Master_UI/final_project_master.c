@@ -412,6 +412,92 @@ void convertFourCharToFlywheelTargetVelocity(void) {
 
 //-- END Logic -------------------------
 
+
+
+//-- I2C Functions -------------------------
+
+int sendI2C(int slaveAddress) {
+
+//    if (slaveAddress != ledAddress && slaveAddress != lcdAddress && slaveAddress != teensyAddress) {
+//        return 1;
+//    }
+
+    switch (slaveAddress) {
+    case lcdAddress:
+        UCB1TBCNT = lcdPackets;
+        break;
+    case ledAddress:
+        UCB1TBCNT = ledPackets;
+        break;
+    case teensyAddress:
+        UCB1TBCNT = teensySendPackets;
+        break;
+    default:
+        return 1;
+    }
+
+    UCB1I2CSA = slaveAddress;
+
+    UCB1CTLW0 |= UCTR;      // put into Tx mode
+
+    i2cDataCounter = 0x00;
+
+    UCB1CTLW0 |= UCTXSTT;   // generate START cond.
+
+    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    return 0;
+}
+
+int receiveI2C(int slaveAddress) {
+
+    if (slaveAddress != teensyAddress) {
+        return 1;
+    }
+
+    /*
+     * Generate First Byte (Address) in packet
+     */
+    UCB1TBCNT = 1;
+
+    UCB1CTLW0 |= UCTR;   // Tx
+
+    i2cDataCounter = 0x00;
+    UCB1TBCNT = 1;
+
+    UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
+
+    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    /*
+     * Send data bytes
+     */
+    switch (slaveAddress) {
+    case teensyAddress:
+        UCB1TBCNT = 2;
+        break;
+    default:
+        return 1;
+    }
+
+    UCB1I2CSA = slaveAddress;
+
+    UCB1CTLW0 &= ~UCTR;   // Rx
+
+    UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
+
+    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    return 0;
+}
+
+//-- END I2C Functions -------------------------
+
+
+
 //-- Main -------------------------
 
 int main(void)
@@ -441,22 +527,20 @@ int main(void)
             resetButtonValue = 0x00;
             systemReset();
 
-            /*
-             * Disconnect I2C
-             */
+            // Disconnect I2C
             volatile unsigned char ieBits;
             ieBits = UCB1IE;             // Save current IE bits
             P4SEL0 &= ~(BIT6);      // Generate NACK by releasing SDA
             P4SEL0 &= ~(BIT7);      //  then SCL by disconnecting from the I2C
             UCB1CTLW0 |= UCSWRST;   // Reset
             UCB1CTLW0 &= ~UCSWRST;
+
             while (resetButtonValue == 0x00) {
                 P1OUT |= BIT0;
                 P6OUT |= BIT6;
             }
-            /*
-             * Reconnect I2C
-             */
+
+            // Reconnect I2C
             UCB1CTLW0 |= UCSWRST;   // Reset
             UCB1CTLW0 &= ~UCSWRST;
             P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
@@ -478,25 +562,20 @@ int main(void)
 
         if (timerInterruptFlag >= 0x01) { // triggers on ~0.1sec
             timerInterruptFlag = 0x00;
-            constructFlywheelTargetVelocity();      //needed to update teensy and LCD
-            constructRotationalTargetAngle();       // needed for LCD and teensy send
-            deconstructFlywheelActualVelocity();    // relies on receive from teensy. Updates LCD
-            deconstructRotationalActualAngle();     // relies on recieve from teensy. Updates LCD
-            /*
-             * TODO
-             * convert Pot reading to degrees
-             * Request from Teensy
-             * Update LCD
-             * Update LEDs
-             */
+            constructFlywheelTargetVelocity();      // updates Teensy and LCD
+            receiveI2C(teensyAddress);
+            constructRotationalTargetAngle();       // updates LCD and Teensy
+            deconstructFlywheelActualVelocity();    // relies on receive from Teensy. Updates LCD
+            deconstructRotationalActualAngle();     // relies on receive from Teensy. Updates LCD
+            constructLEDIndicatorPattern();         // relies on receive from Teensy. Updates LEDs
+            sendI2C(lcdAddress);
+            sendI2C(ledAddress);
+
             if (timerInterruptCounter >= 0x05) { // triggers on ~0.5sec
                timerInterruptCounter = 0x00;
-
-               /*
-                * TODO
-                * Update Teensy
-                */
-           }
+               constructIndexer();      // updates teensy
+               sendI2C(teensyAddress);
+            }
         }
     }
 
