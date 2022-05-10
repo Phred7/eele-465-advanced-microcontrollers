@@ -99,7 +99,7 @@ int sendI2C(int slaveAddress){
 
     UCB1TBCNT = 4;
 
-    UCB1I2CSA = 0x69;
+    UCB1I2CSA = 0x42;
 
     UCB1CTLW0 |= UCTR;      // put into Tx mode
 
