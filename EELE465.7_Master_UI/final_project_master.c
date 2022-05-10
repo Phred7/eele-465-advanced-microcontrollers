@@ -49,12 +49,14 @@ unsigned char keypadEntryCounter = 0x00;
 unsigned char keypadEntries[4] = { 0x00, 0x00, 0x00, 0x00 };
 unsigned char publishKeypadValueFlag = 0x00;
 
-// I2C globals
+// I2C globals TODO: currently i2c packets assume nibbles will be sent... not bytes. 2 hex values can be sent in each section not just 1.
 unsigned char lcdDataToSend[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned char ledDataToSend[1] = { 0x00 };
 unsigned char teensyDataToSend[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned char teensyDataRecieved[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned int i2cDataCounter = 0;
+unsigned char i2cTransmitCompleteFlag = 0x00;   // used in i2c receive... byte counter interrupt?
+unsigned char i2cStopReached = 0x00;
 
 // Data values
 unsigned char targetFlywheelVelocityHex[4] = { 0x00, 0x00, 0x00, 0x00 };
@@ -104,7 +106,7 @@ void configI2C(void) {
     UCB1IE |= UCCLTOIE;
     UCB1IE |= UCNACKIE;
     UCB1IE |= UCBCNTIE;
-    //UCB1IE |= UCBSTPIE;
+    UCB1IE |= UCSTPIE;
     //-- END Config. I2C Master
     return;
 }
@@ -359,7 +361,7 @@ void constructLEDIndicatorPattern(void) {
     /*
      * TODO: use current, last and target fly-wheel data values to determine what pattern to display on the LEDs
      */
-    ledDataToSend[0] = 0xBB;
+    ledDataToSend[0] = 0x11;
 }
 
 
@@ -444,8 +446,15 @@ int sendI2C(int slaveAddress) {
 
     UCB1CTLW0 |= UCTXSTT;   // generate START cond.
 
-    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
-        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+//    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+//        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    while (i2cStopReached == 0x00);
+
+    i2cStopReached = 0x00;
+    UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    UCB1TXBUF = 0x00;
 
     return 0;
 }
@@ -468,15 +477,19 @@ int receiveI2C(int slaveAddress) {
 
     UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
 
+    i2cTransmitCompleteFlag = 0x03;
+
     while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
         UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
+    i2cTransmitCompleteFlag = 0x00;
+
     /*
-     * Send data bytes
+     * Receive data bytes
      */
     switch (slaveAddress) {
     case teensyAddress:
-        UCB1TBCNT = 2;
+        UCB1TBCNT = teensyRecievePackets;
         break;
     default:
         return 1;
@@ -515,17 +528,22 @@ int main(void)
     configIndicatorLEDs();
     configSystemResetPin();
 
+    delay(1000);
+
     __enable_interrupt();
 
     enableTimerInterrupt(1873);  // timer interrupt every .1 seconds.
 
     while(1) {
 
-        if (resetButtonValue == 0x01) {
-            __disable_interrupt();
+        if (resetButtonValue == 0x01) { // handles system reset
+            P4IE &= ~BIT0;
             disableTimerInterrupt();
             resetButtonValue = 0x00;
             systemReset();
+
+            P1OUT &= ~BIT0;
+            P6OUT &= ~BIT6;
 
             // Disconnect I2C
             volatile unsigned char ieBits;
@@ -534,17 +552,25 @@ int main(void)
             P4SEL0 &= ~(BIT7);      //  then SCL by disconnecting from the I2C
             UCB1CTLW0 |= UCSWRST;   // Reset
             UCB1CTLW0 &= ~UCSWRST;
+            P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
+            UCB1IE = ieBits;             // Put IE back
 
-            while (resetButtonValue == 0x00) {
+            __disable_interrupt();
+
+            delay(1000);
+
+            while ((P4IN & BIT0) == 0x00) { // interrupts are disabled here...
                 P1OUT |= BIT0;
                 P6OUT |= BIT6;
             }
 
             // Reconnect I2C
-            UCB1CTLW0 |= UCSWRST;   // Reset
-            UCB1CTLW0 &= ~UCSWRST;
-            P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
-            UCB1IE = ieBits;             // Put IE back
+//            UCB1CTLW0 |= UCSWRST;   // Reset
+//            UCB1CTLW0 &= ~UCSWRST;
+//            P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
+//            UCB1IE = ieBits;             // Put IE back
+//
+//            UCB1STATW &= ~UCBBUSY;
 
             P1OUT &= ~BIT0;
             P6OUT &= ~BIT6;
@@ -552,7 +578,10 @@ int main(void)
             systemResetRestart();
             delay(500);
             enableTimerInterrupt(1873);
+            P4IFG &= ~BIT0;
             __enable_interrupt();
+            resetButtonValue = 0x00;
+            P4IE |= BIT0;
         }
 
         if (publishKeypadValueFlag == 0x01) {
@@ -563,18 +592,20 @@ int main(void)
         if (timerInterruptFlag >= 0x01) { // triggers on ~0.1sec
             timerInterruptFlag = 0x00;
             constructFlywheelTargetVelocity();      // updates Teensy and LCD
-            receiveI2C(teensyAddress);
+//            receiveI2C(teensyAddress);
             constructRotationalTargetAngle();       // updates LCD and Teensy
             deconstructFlywheelActualVelocity();    // relies on receive from Teensy. Updates LCD
             deconstructRotationalActualAngle();     // relies on receive from Teensy. Updates LCD
             constructLEDIndicatorPattern();         // relies on receive from Teensy. Updates LEDs
-            sendI2C(lcdAddress);
+//            sendI2C(lcdAddress);
             sendI2C(ledAddress);
+            P6OUT ^= BIT6;
 
             if (timerInterruptCounter >= 0x05) { // triggers on ~0.5sec
                timerInterruptCounter = 0x00;
                constructIndexer();      // updates teensy
-               sendI2C(teensyAddress);
+//               sendI2C(teensyAddress);
+               P1OUT ^= BIT0;
             }
         }
     }
@@ -625,9 +656,18 @@ __interrupt void ISR_P3_Keypad(void) {
         memset(keypadEntries, 0x00, 4);
         publishKeypadValueFlag = 0x01;
     } else if (keypadValue == 0x18) {
+        if (keypadEntryCounter < 4) {
+            int shiftEntryDecimalPlaces;
+            for (shiftEntryDecimalPlaces = 0; shiftEntryDecimalPlaces < (4 - keypadEntryCounter); shiftEntryDecimalPlaces++) {
+                keypadEntries[3] = keypadEntries[2];
+                keypadEntries[2] = keypadEntries[1];
+                keypadEntries[1] = keypadEntries[0];
+                keypadEntries[0] = 0x14;
+            }
+        }
         keypadEntryCounter = 0;
         publishKeypadValueFlag = 0x01;
-    } else if (keypadValue != 0x81 && keypadValue != 0x41 && keypadValue != 0x21 && keypadValue != 0x11 && publishKeypadValueFlag == 0x00) { // not A, B, C, D and publishKeypadValueFlag is not active (is 0x00)
+    } else if (keypadValue != 0x81 && keypadValue != 0x41 && keypadValue != 0x21 && keypadValue != 0x11 && publishKeypadValueFlag == 0x00 && keypadValue != 0x00) { // not A, B, C, D, 0 and publishKeypadValueFlag is not active (is 0x00)
         if (keypadEntryCounter < 4) {
             keypadEntries[keypadEntryCounter] = keypadValue;
             keypadEntryCounter++;
@@ -684,20 +724,34 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         UCB1CTLW0 &= ~UCSWRST;
         P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
         UCB1IE = r;             // Put IE back
+
         // TODO: reset any counters and flags.
+        i2cTransmitCompleteFlag = 0x00;
+        i2cDataCounter = 0x00;
+
+        UCB1IFG &= ~UCSTPIFG; // TODO: this may cause problems...
         break;
     case 0x04:
         /*
          * NACK Received;
          */
         UCB1CTLW0 |= UCTXSTP;   // Generate STOP cond.
+        UCB1IFG &= ~UCSTPIFG; // TODO: this may cause problems...
+        break;
+    case 0x08:
+        /*
+         * STOP Triggered
+         */
+        i2cStopReached = 0x01;
         break;
     case 0x16:
         /*
-         * Data Received; TODO
+         * Data Received;
          */
         switch (UCB1I2CSA) {
         case teensyAddress:
+            teensyDataRecieved[i2cDataCounter] = UCB1RXBUF;
+            i2cDataCounter++;
             break;
         default:
             break;
@@ -705,25 +759,34 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         break;
     case 0x18:
         /*
-         * Data Transmission; TODO
+         * Data Transmission;
          */
         switch (UCB1I2CSA) {
         case lcdAddress:
             UCB1TXBUF = lcdDataToSend[i2cDataCounter];
+            i2cDataCounter++;
             break;
         case ledAddress:
             UCB1TXBUF = ledDataToSend[0];
             break;
         case teensyAddress:
-            UCB1TXBUF = 0x00;
+            if (i2cTransmitCompleteFlag == 0x03) { // this means we need to send the address
+                UCB1TXBUF = teensyAddress;
+            } else {    // otherwise send the data
+                UCB1TXBUF = teensyDataToSend[i2cDataCounter];
+                i2cDataCounter++;
+            }
             break;
         default:
             break;
         }
         break;
-    case 26: // Vector 26: BCNTIFG
-        counter = UCB1STATW & UCBCNT;
-        if ((counter) > 0) {
+    case 0x26: // Vector 26: BCNTIFG (Byte counter)
+        if (i2cTransmitCompleteFlag == 0x03) {
+            counter = UCB1STATW & UCBCNT;
+            if ((counter) > 0) {
+                i2cTransmitCompleteFlag = 0x00;
+            }
         }
         break;
     default:
