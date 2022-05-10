@@ -420,17 +420,6 @@ void convertFourCharToFlywheelTargetVelocity(void) {
 
 int sendI2C(int slaveAddress) {
 
-    if ((UCB1STATW & UCBBUSY) != 0 ) {
-        UCB1IFG |= UCCLTOIFG;
-        delay(10);
-//        UCB1IFG &= ~UCSTPIFG;
-        // UCB1STATW &= ~UCBBUSY;
-    }
-
-//    if (slaveAddress != ledAddress && slaveAddress != lcdAddress && slaveAddress != teensyAddress) {
-//        return 1;
-//    }
-
     switch (slaveAddress) {
     case lcdAddress:
         UCB1TBCNT = lcdPackets;
@@ -457,7 +446,6 @@ int sendI2C(int slaveAddress) {
 //        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
     while (i2cStopReached == 0x00);
-
     i2cStopReached = 0x00;
     UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
@@ -486,8 +474,12 @@ int receiveI2C(int slaveAddress) {
 
     i2cTransmitCompleteFlag = 0x03;
 
-    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
-        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+//    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+//        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    while (i2cStopReached == 0x00);
+    i2cStopReached = 0x00;
+    UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
     i2cTransmitCompleteFlag = 0x00;
 
@@ -508,8 +500,12 @@ int receiveI2C(int slaveAddress) {
 
     UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
 
-    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
-        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+//    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
+//        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    while (i2cStopReached == 0x00);
+    i2cStopReached = 0x00;
+    UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
 
     return 0;
 }
@@ -544,6 +540,7 @@ int main(void)
     while(1) {
 
         if (resetButtonValue == 0x01) { // handles system reset
+            __disable_interrupt();
             P4IE &= ~BIT0;
             disableTimerInterrupt();
             resetButtonValue = 0x00;
@@ -552,44 +549,23 @@ int main(void)
             P1OUT &= ~BIT0;
             P6OUT &= ~BIT6;
 
-            // Disconnect I2C
-            volatile unsigned char ieBits;
-            ieBits = UCB1IE;             // Save current IE bits
-            P4SEL0 &= ~(BIT6);      // Generate NACK by releasing SDA
-            P4SEL0 &= ~(BIT7);      //  then SCL by disconnecting from the I2C
-            UCB1CTLW0 |= UCSWRST;   // Reset
-            UCB1CTLW0 &= ~UCSWRST;
-            P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
-            UCB1IE = ieBits;             // Put IE back
-
-            __disable_interrupt();
-
-            delay(1000);
-
+            while ((P4IN & BIT0) == 0x01);
             while ((P4IN & BIT0) == 0x00) { // interrupts are disabled here...
                 P1OUT |= BIT0;
                 P6OUT |= BIT6;
             }
             while ((P4IN & BIT0) == 0x01);
-
-            // Reconnect I2C
-//            UCB1CTLW0 |= UCSWRST;   // Reset
-//            UCB1CTLW0 &= ~UCSWRST;
-//            P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
-//            UCB1IE = ieBits;             // Put IE back
-//
-//            UCB1STATW &= ~UCBBUSY;
+            P4IFG &= ~BIT0;
 
             P1OUT &= ~BIT0;
             P6OUT &= ~BIT6;
-            delay(500);
             systemResetRestart();
-            delay(500);
             enableTimerInterrupt(1873);
-            P4IFG &= ~BIT0;
             __enable_interrupt();
             resetButtonValue = 0x00;
+            P4IFG &= ~BIT0;
             P4IE |= BIT0;
+            P4IFG &= ~BIT0;
         }
 
         if (publishKeypadValueFlag == 0x01) {
@@ -705,7 +681,7 @@ __interrupt void ISR_P4_Button(void) {
     portInput = P4IN;
 
     resetButtonValue = portInput & BIT0;
-
+    while ((P4IN & BIT0) == 0x01);
     P4IFG &= ~BIT0;
 }
 
@@ -737,7 +713,8 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         i2cTransmitCompleteFlag = 0x00;
         i2cDataCounter = 0x00;
 
-        UCB1IFG &= ~UCSTPIFG; // TODO: this may cause problems...
+        UCB1IFG &= ~UCSTPIFG; // TODO: these may cause problems...
+        UCB1STATW &= ~UCBBUSY;
         break;
     case 0x04:
         /*
