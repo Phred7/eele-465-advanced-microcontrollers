@@ -361,7 +361,16 @@ void constructLEDIndicatorPattern(void) {
     /*
      * TODO: use current, last and target fly-wheel data values to determine what pattern to display on the LEDs
      */
-    ledDataToSend[0] = 0x11;
+
+    if (targetFlywheelVelocity - 15 > actualFlywheelVelocity) {
+        ledDataToSend[0] = 0x81;
+    } else if (targetFlywheelVelocity + 15 < actualFlywheelVelocity) {
+        ledDataToSend[0] = 0x41;
+    } else if (actualFlywheelVelocity > 0) {
+        ledDataToSend[0] = 0x21;
+    } else {
+        ledDataToSend[0] = 0x11;
+    }
 }
 
 

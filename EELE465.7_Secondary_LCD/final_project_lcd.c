@@ -298,8 +298,8 @@ void convertReceivedData(void){
     P1OUT ^= BIT0;
 
     // Velocity Target
-//    setDDRAM(0, 3);
-//    sendDataLCD(1, 0b00110110);
+    setDDRAM(0, 3);
+    sendDataLCD(1, 0b00110110);
 //    //sendDataLCD(1, convDec2Hex(receivedData[54]));
 //    sendDataLCD(1, convDec2Hex(receivedData[5]));
 //    sendDataLCD(1, convDec2Hex(receivedData[6]));
@@ -493,6 +493,7 @@ void initLCD(void){
     sendDataLCD(0,0b00001111);  // Display on, Turn display on and set cursor style
     sendDataLCD(0,0b00000001);  // Display clear, set DDRAM to 00h
     sendDataLCD(0,0b00000110);  // Set Entry Mode
+    // sendDataLCD(0,0b00010100);  // Control cursor and display shift
     sendDataLCD(0,0b00000010);  // Move cursor to home position
     sendDataLCD(0,0b01000000);  // SetCGRAM();
     setDDRAM(0,0);              // Set DDRAM Location to 00h
