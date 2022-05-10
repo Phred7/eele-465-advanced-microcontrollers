@@ -478,7 +478,10 @@ int main(void)
 
         if (timerInterruptFlag >= 0x01) { // triggers on ~0.1sec
             timerInterruptFlag = 0x00;
-            constructRotationalTargetAngle();
+            constructFlywheelTargetVelocity();      //needed to update teensy and LCD
+            constructRotationalTargetAngle();       // needed for LCD and teensy send
+            deconstructFlywheelActualVelocity();    // relies on receive from teensy. Updates LCD
+            deconstructRotationalActualAngle();     // relies on recieve from teensy. Updates LCD
             /*
              * TODO
              * convert Pot reading to degrees
@@ -488,6 +491,7 @@ int main(void)
              */
             if (timerInterruptCounter >= 0x05) { // triggers on ~0.5sec
                timerInterruptCounter = 0x00;
+
                /*
                 * TODO
                 * Update Teensy

@@ -1,7 +1,7 @@
 ******************************************************************************
                   MSP430 Linker PC v20.2.5                     
 ******************************************************************************
->> Linked Wed May  4 23:17:35 2022
+>> Linked Mon May  9 21:32:24 2022
 
 OUTPUT FILE NAME:   <EELE465.7_Secondary_LED.out>
 ENTRY POINT SYMBOL: "_c_int00_noinit_noargs"  address: 0000f814
