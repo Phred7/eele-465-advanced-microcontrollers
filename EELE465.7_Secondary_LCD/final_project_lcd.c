@@ -298,32 +298,33 @@ void convertReceivedData(void){
     P1OUT ^= BIT0;
 
     // Velocity Target
-    setDDRAM(0, 3);
-    sendDataLCD(1, 0b00110110);
-//    sendDataLCD(0, convDec2Hex(receivedData[5]));
-//    sendDataLCD(0, convDec2Hex(receivedData[6]));
-//    sendDataLCD(0, convDec2Hex(receivedData[7]));
+//    setDDRAM(0, 3);
+//    sendDataLCD(1, 0b00110110);
+//    //sendDataLCD(1, convDec2Hex(receivedData[54]));
+//    sendDataLCD(1, convDec2Hex(receivedData[5]));
+//    sendDataLCD(1, convDec2Hex(receivedData[6]));
+//    sendDataLCD(1, convDec2Hex(receivedData[7]));
 
 //    // Velocity Actual
 //    setDDRAM(0, 11);
-//    sendDataLCD(0, receivedData[0]);
-//    sendDataLCD(0, receivedData[1]);
-//    sendDataLCD(0, receivedData[2]);
-//    sendDataLCD(0, receivedData[3]);
+//    sendDataLCD(1, receivedData[0]);
+//    sendDataLCD(1, receivedData[1]);
+//    sendDataLCD(1, receivedData[2]);
+//    sendDataLCD(1, receivedData[3]);
 //
 //    // Rotational Position Target
 //    setDDRAM(1, 4);
-//    sendDataLCD(0, receivedData[12]);
-//    sendDataLCD(0, receivedData[13]);
-//    sendDataLCD(0, receivedData[14]);
-//    sendDataLCD(0, receivedData[15]);
+//    sendDataLCD(1, receivedData[12]);
+//    sendDataLCD(1, receivedData[13]);
+//    sendDataLCD(1, receivedData[14]);
+//    sendDataLCD(1, receivedData[15]);
 //
 //    // Rotational Position Actual
 //    setDDRAM(1, 12);
-//    sendDataLCD(0, receivedData[8]);
-//    sendDataLCD(0, receivedData[9]);
-//    sendDataLCD(0, receivedData[10]);
-//    sendDataLCD(0, receivedData[11]);
+//    sendDataLCD(1, receivedData[8]);
+//    sendDataLCD(1, receivedData[9]);
+//    sendDataLCD(1, receivedData[10]);
+//    sendDataLCD(1, receivedData[11]);
 
 //    // N value
 //    setDDRAM(0,4);
@@ -473,7 +474,7 @@ void configTimerB0(void){
     //-- Setup Timer Overflow IRQ
     TB0CCTL0 &= ~CCIE;          // Disable TB0 Overflow IRQ
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
-//    __enable_interrupt();       // Enable Maskable IRQs
+    __enable_interrupt();       // Enable Maskable IRQs
 
     return;
 }
@@ -509,8 +510,6 @@ int main(void){
     configPorts();
 
     PM5CTL0 &= ~LOCKLPM5;       // Turn on GPIO
-
-    __enable_interrupt();
 
     configTimerB0();
 
@@ -554,9 +553,9 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
 
         // TODO: reset any counters and flags.
         receiveDataCounter = 0;
-
-        UCB1IFG &= ~UCSTPIFG; // TODO: these may cause problems...
-        UCB1STATW &= ~UCBBUSY;
+//
+//        UCB1IFG &= ~UCSTPIFG; // TODO: these may cause problems...
+//        UCB1STATW &= ~UCBBUSY;
         break;
     case 0x16:
         /*
