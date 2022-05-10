@@ -240,12 +240,15 @@ void systemResetRestart(void) {
 }
 
 void systemReset(void) {
+    /*
+     * Sets the System Reset pin high
+     */
     P5OUT |= BIT4;
 }
 
 void constructFlywheelTargetVelocity(void) {
     /*
-     * TODO: Convert keypad input into i2c packets and populate i2c packets
+     * Populate teensy and lcd i2c packets with target flywheel velocity
      */
     teensyDataToSend[0] = targetFlywheelVelocityHex[0];
     teensyDataToSend[1] = targetFlywheelVelocityHex[1];
@@ -260,7 +263,7 @@ void constructFlywheelTargetVelocity(void) {
 
 void deconstructFlywheelActualVelocity(void) {
     /*
-     * TODO: Deconstruct i2c packet into usable data and populate other i2c packets... DOES this actually need to happen or does it just need to populate other packets?
+     * Deconstruct teensy i2c actual flywheel velocity into long actualFlywheelVelocity and populate lcd i2c packet
      */
     actualFlywheelVelocityHex[0] = teensyDataRecieved[0];
     actualFlywheelVelocityHex[1] = teensyDataRecieved[1];
@@ -271,6 +274,9 @@ void deconstructFlywheelActualVelocity(void) {
     lcdDataToSend[1] = teensyDataRecieved[1];
     lcdDataToSend[2] = teensyDataRecieved[2];
     lcdDataToSend[3] = teensyDataRecieved[3];
+
+    lastActualFlywheelVelcity = actualFlywheelVelocity;
+    actualFlywheelVelocity = (((int)actualFlywheelVelocityHex[0]) * 1000) + (((int)actualFlywheelVelocityHex[1]) * 100) + (((int)actualFlywheelVelocityHex[2]) * 10) + ((int)actualFlywheelVelocityHex[3]);
 }
 
 void constructRotationalTargetAngle(void) {
@@ -317,7 +323,7 @@ void constructRotationalTargetAngle(void) {
 
 void deconstructRotationalActualAngle(void) {
     /*
-     * TODO: deconstruct i2c packet into usable data and populate other i2c packets
+     * Deconstruct i2c packet into usable data and populate other i2c packets
      */
     lcdDataToSend[8] = teensyDataRecieved[4];
     lcdDataToSend[9] = teensyDataRecieved[5];
@@ -344,8 +350,9 @@ void constructLEDIndicatorPattern(void) {
 
 void convertFourCharToFlywheelTargetVelocity(void) {
     /*
-     * TODO: this may be unnecessary seeing that we literally just need to send it to different places...
+     * Converts keypadEntries into double targetFlywheelVelocity and updates the targetFlywheelVelocityHex
      */
+    lastTargetFlywheelVelocity = targetFlywheelVelocity;
     targetFlywheelVelocity = 0.0;
     memcpy(targetFlywheelVelocityHex, keypadEntries, sizeof(keypadEntries));
     int arrayIndex;
@@ -383,11 +390,9 @@ void convertFourCharToFlywheelTargetVelocity(void) {
             decimalValue = 0;
             break;
         }
+        targetFlywheelVelocityHex[arrayIndex] = decimalValue;
         targetFlywheelVelocity += (decimalValue) * pow(10, (3 - arrayIndex));
     }
-    /*
-     * TODO: self explanatory... update fly-wheel target velocity double
-     */
 }
 
 //-- END Logic -------------------------
@@ -419,10 +424,6 @@ int main(void)
             disableTimerInterrupt();
             resetButtonValue = 0x00;
             systemReset();
-            /*
-             * TODO
-             * Put LCD, LED and Teensy into reset states by setting reset pin high
-             */
             while (resetButtonValue == 0x00) {
                 /*
                  * TODO: constantly send stops? Or nacks?
@@ -475,6 +476,8 @@ __interrupt void ISR_TB0_CCR0(void) {
     adcValue = ADCMEM0;                // Read ADC value
 
     switchValue = (P4IN & BIT1) >> 1;
+
+    if (switchValue)
 
     timerInterruptFlag = 0x01;
     timerInterruptCounter++;
