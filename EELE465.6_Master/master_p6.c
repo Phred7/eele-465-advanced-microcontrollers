@@ -532,11 +532,12 @@ void resetRTC(void) {
     send_i2c(ledAddress);
 
     // wait for N from user. Dont convert N to Dec.
-    while (n == 0x00) {
-        if (keypadValue > 0x00) {
-            n = keypadValue;
-        }
-    }
+//    while (n == 0x00) {
+//        if (keypadValue > 0x00) {
+//            n = keypadValue;
+//        }
+//    }
+    n=0x22;
 
     enableTimerInterrupt(9366);
 
