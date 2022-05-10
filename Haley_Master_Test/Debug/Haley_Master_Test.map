@@ -1,10 +1,10 @@
 ******************************************************************************
                   MSP430 Linker PC v20.2.5                     
 ******************************************************************************
->> Linked Tue May 10 12:54:48 2022
+>> Linked Tue May 10 13:23:17 2022
 
-OUTPUT FILE NAME:   <EELE465.6_Slave_I2C_LCD.out>
-ENTRY POINT SYMBOL: "_c_int00_noargs_mpu"  address: 000089b0
+OUTPUT FILE NAME:   <Haley_Master_Test.out>
+ENTRY POINT SYMBOL: "_c_int00_noargs"  address: 00008422
 
 
 MEMORY CONFIGURATION
@@ -16,8 +16,8 @@ MEMORY CONFIGURATION
   INFO                  00001800   00000200  00000000  00000200  RWIX
   TLVMEM                00001a00   00000200  00000000  00000200  RWIX
   BOOTCODE              00001c00   00000400  00000000  00000400  RWIX
-  RAM                   00002000   00001000  000000bc  00000f44  RWIX
-  FRAM                  00008000   00007f80  000009e2  0000759e  RWIX
+  RAM                   00002000   00001000  000000aa  00000f56  RWIX
+  FRAM                  00008000   00007f80  00000450  00007b30  RWIX
   JTAGSIGNATURE         0000ff80   00000004  00000004  00000000  RWIX  ffff 
   BSLSIGNATURE          0000ff84   00000004  00000004  00000000  RWIX  ffff 
   BSLCONFIGURATIONSIGNA 0000ff88   00000002  00000002  00000000  RWIX  ffff 
@@ -87,8 +87,9 @@ section   page    origin      length       input sections
 .sysmem    0    00008000    00000000     UNINITIALIZED
 
 .cinit     0    00008000    00000018     
-                  00008000    00000008     (.cinit..data.load) [load image, compression = lzss]
-                  00008008    00000008     (__TI_handler_table)
+                  00008000    00000008     (__TI_handler_table)
+                  00008008    00000007     (.cinit..data.load) [load image, compression = lzss]
+                  0000800f    00000001     --HOLE-- [fill = 0]
                   00008010    00000008     (__TI_cinit_table)
 
 .pinit     0    00008018    00000000     UNINITIALIZED
@@ -106,43 +107,32 @@ section   page    origin      length       input sections
 
 .const     0    00008018    00000000     UNINITIALIZED
 
-.text      0    00008018    0000092e     
-                  00008018    000001e2     slave6_i2c_lcd.obj (.text:convertReceivedData)
-                  000081fa    00000104     slave6_i2c_lcd.obj (.text:resetDisplay)
-                  000082fe    000000ee     rts430x_lc_sd_eabi.lib : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
-                  000083ec    000000de     slave6_i2c_lcd.obj (.text:convKey2LCDhex)
-                  000084ca    000000a0     slave6_i2c_lcd.obj (.text:sendDataLCD)
-                  0000856a    00000076     slave6_i2c_lcd.obj (.text:convDec2Hex)
-                  000085e0    0000006a     rts430x_lc_sd_eabi.lib : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit_hold_wdt:__TI_auto_init_nobinit_nopinit_hold_wdt)
-                  0000864a    00000062     slave6_i2c_lcd.obj (.text:configI2C)
-                  000086ac    0000005e     slave6_i2c_lcd.obj (.text:configPorts)
-                  0000870a    00000050     slave6_i2c_lcd.obj (.text:initLCD)
-                  0000875a    00000040     rts430x_lc_sd_eabi.lib : cpy_util.asm.obj (.text:__memcpy_far)
-                  0000879a    0000003e     slave6_i2c_lcd.obj (.text:setDDRAM)
-                  000087d8    0000003c     FRWP_INIT_LIB_CCS_msp430_large_code_small_data.lib : frwp_init.obj (.text:__mpu_init)
-                  00008814    0000003c     rts430x_lc_sd_eabi.lib : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
-                  00008850    00000034     slave6_i2c_lcd.obj (.text:configTimerB0)
-                  00008884    00000034     slave6_i2c_lcd.obj (.text:main)
-                  000088b8    00000026     slave6_i2c_lcd.obj (.text:dataDelay)
-                  000088de    00000018     slave6_i2c_lcd.obj (.text:BCD2Hex)
-                  000088f6    00000018     rts430x_lc_sd_eabi.lib : mult16_f5hw.asm.obj (.text)
-                  0000890e    00000016     slave6_i2c_lcd.obj (.text:latchClock)
-                  00008924    00000016     rts430x_lc_sd_eabi.lib : div16u.asm.obj (.text)
-                  0000893a    00000006                            : exit.c.obj (.text:abort)
-                  00008940    00000004                            : pre_init.c.obj (.text:_system_pre_init)
-                  00008944    00000002                            : startup.c.obj (.text:_system_post_cinit)
+.text      0    00008018    00000364     
+                  00008018    000000ee     rts430x_lc_sd_eabi.lib : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
+                  00008106    0000006a                            : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit_hold_wdt:__TI_auto_init_nobinit_nopinit_hold_wdt)
+                  00008170    00000064     Master_I2CTest.obj (.text:configI2C)
+                  000081d4    00000060     Master_I2CTest.obj (.text:sendData2Slaves)
+                  00008234    00000050     Master_I2CTest.obj (.text:sendI2C)
+                  00008284    00000040     rts430x_lc_sd_eabi.lib : cpy_util.asm.obj (.text:__memcpy_far)
+                  000082c4    0000003c                            : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
+                  00008300    00000034     Master_I2CTest.obj (.text:configTimerB0)
+                  00008334    00000026     Master_I2CTest.obj (.text:main)
+                  0000835a    00000016     Master_I2CTest.obj (.text:configPorts)
+                  00008370    00000006     rts430x_lc_sd_eabi.lib : exit.c.obj (.text:abort)
+                  00008376    00000004                            : pre_init.c.obj (.text:_system_pre_init)
+                  0000837a    00000002                            : startup.c.obj (.text:_system_post_cinit)
 
 .text:_isr 
-*          0    00008946    0000009c     
-                  00008946    0000006a     slave6_i2c_lcd.obj (.text:_isr:EUSCI_B1_I2C_ISR)
-                  000089b0    00000020     rts430x_lc_sd_eabi.lib : boot.c.obj (.text:_isr:_c_int00_noargs_mpu)
-                  000089d0    0000000a     slave6_i2c_lcd.obj (.text:_isr:ISR_TB0_CCR0)
-                  000089da    00000008     rts430x_lc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
+*          0    0000837c    000000d4     
+                  0000837c    000000a6     Master_I2CTest.obj (.text:_isr:EUSCI_B1_I2C_ISR)
+                  00008422    0000001c     rts430x_lc_sd_eabi.lib : boot.c.obj (.text:_isr:_c_int00_noargs)
+                  0000843e    0000000a     Master_I2CTest.obj (.text:_isr:ISR_TB0_CCR0)
+                  00008448    00000008     rts430x_lc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
 
-.data      0    00002000    0000001c     UNINITIALIZED
-                  00002000    00000010     slave6_i2c_lcd.obj (.data:receivedData)
-                  00002010    00000008     slave6_i2c_lcd.obj (.data:convDecData)
-                  00002018    00000004     slave6_i2c_lcd.obj (.data)
+.data      0    00002000    0000000a     UNINITIALIZED
+                  00002000    00000005     Master_I2CTest.obj (.data)
+                  00002005    00000001     --HOLE--
+                  00002006    00000004     Master_I2CTest.obj (.data:colorData)
 
 .stack     0    00002f60    000000a0     UNINITIALIZED
                   00002f60    00000002     rts430x_lc_sd_eabi.lib : boot.c.obj (.stack)
@@ -176,7 +166,7 @@ ADC        0    0000ffdc    00000002
                   0000ffdc    00000002     rts430x_lc_sd_eabi.lib : int29.asm.obj (.int29)
 
 EUSCI_B1   0    0000ffde    00000002     
-                  0000ffde    00000002     slave6_i2c_lcd.obj (.int30)
+                  0000ffde    00000002     Master_I2CTest.obj (.int30)
 
 EUSCI_B0   0    0000ffe0    00000002     
                   0000ffe0    00000002     rts430x_lc_sd_eabi.lib : int31.asm.obj (.int31)
@@ -223,7 +213,7 @@ TIMER0_B1
 
 TIMER0_B0 
 *          0    0000fff8    00000002     
-                  0000fff8    00000002     slave6_i2c_lcd.obj (.int43)
+                  0000fff8    00000002     Master_I2CTest.obj (.int43)
 
 UNMI       0    0000fffa    00000002     
                   0000fffa    00000002     rts430x_lc_sd_eabi.lib : int44.asm.obj (.int44)
@@ -254,23 +244,16 @@ MODULE SUMMARY
        Module                       code   ro data   rw data
        ------                       ----   -------   -------
     .\
-       slave6_i2c_lcd.obj           1880   4         28     
+       Master_I2CTest.obj           564    4         9      
     +--+----------------------------+------+---------+---------+
-       Total:                       1880   4         28     
-                                                            
-    C:\ti\ccs1040\ccs\ccs_base\msp430\lib\FR2xx\FRWP_INIT_LIB_CCS_msp430_large_code_small_data.lib
-       frwp_init.obj                60     0         0      
-    +--+----------------------------+------+---------+---------+
-       Total:                       60     0         0      
+       Total:                       564    4         9      
                                                             
     C:\ti\ccs1040\ccs\tools\compiler\ti-cgt-msp430_20.2.5.LTS\lib\rts430x_lc_sd_eabi.lib
        copy_decompress_lzss.c.obj   238    0         0      
        autoinit.c.obj               106    0         0      
        cpy_util.asm.obj             64     0         0      
        copy_decompress_none.c.obj   60     0         0      
-       boot.c.obj                   32     2         0      
-       mult16_f5hw.asm.obj          24     0         0      
-       div16u.asm.obj               22     0         0      
+       boot.c.obj                   28     2         0      
        isr_trap.asm.obj             8      0         0      
        exit.c.obj                   6      0         0      
        pre_init.c.obj               4      0         0      
@@ -298,23 +281,23 @@ MODULE SUMMARY
        int45.asm.obj                0      2         0      
        startup.c.obj                2      0         0      
     +--+----------------------------+------+---------+---------+
-       Total:                       566    46        0      
+       Total:                       516    46        0      
                                                             
        Stack:                       0      0         160    
-       Linker Generated:            0      24        0      
+       Linker Generated:            0      23        0      
     +--+----------------------------+------+---------+---------+
-       Grand Total:                 2506   74        188    
+       Grand Total:                 1080   73        169    
 
 
 LINKER GENERATED COPY TABLES
 
 __TI_cinit_table @ 00008010 records: 1, size/record: 8, table size: 8
-	.data: load addr=00008000, load size=00000008 bytes, run addr=00002000, run size=0000001c bytes, compression=lzss
+	.data: load addr=00008008, load size=00000007 bytes, run addr=00002000, run size=0000000a bytes, compression=lzss
 
 
 LINKER GENERATED HANDLER TABLE
 
-__TI_handler_table @ 00008008 records: 2, size/record: 4, table size: 8
+__TI_handler_table @ 00008000 records: 2, size/record: 4, table size: 8
 	index: 0, handler: __TI_decompress_lzss
 	index: 1, handler: __TI_decompress_none
 
@@ -401,8 +384,7 @@ address   name
 00000672  BAKMEM9                                
 00000673  BAKMEM9_H                              
 00000672  BAKMEM9_L                              
-000088de  BCD2Hex                                
-0000893a  C$$EXIT                                
+00008370  C$$EXIT                                
 000002ee  CAPTIOCTL                              
 000002ef  CAPTIOCTL_H                            
 000002ee  CAPTIOCTL_L                            
@@ -481,7 +463,7 @@ address   name
 00000190  CSCTL8                                 
 00000191  CSCTL8_H                               
 00000190  CSCTL8_L                               
-00008946  EUSCI_B1_I2C_ISR                       
+0000837c  EUSCI_B1_I2C_ISR                       
 000001a0  FRCTL0                                 
 000001a1  FRCTL0_H                               
 000001a0  FRCTL0_L                               
@@ -509,7 +491,7 @@ address   name
 000006c0  ICCSC                                  
 000006c1  ICCSC_H                                
 000006c0  ICCSC_L                                
-000089d0  ISR_TB0_CCR0                           
+0000843e  ISR_TB0_CCR0                           
 000004c4  MAC                                    
 000004da  MAC32H                                 
 000004db  MAC32H_H                               
@@ -1237,12 +1219,12 @@ address   name
 000000a0  __STACK_SIZE                           
 00008010  __TI_CINIT_Base                        
 00008018  __TI_CINIT_Limit                       
-00008008  __TI_Handler_Table_Base                
-00008010  __TI_Handler_Table_Limit               
-000089da  __TI_ISR_TRAP                          
-000085e0  __TI_auto_init_nobinit_nopinit_hold_wdt
-000082fe  __TI_decompress_lzss                   
-00008814  __TI_decompress_none                   
+00008000  __TI_Handler_Table_Base                
+00008008  __TI_Handler_Table_Limit               
+00008448  __TI_ISR_TRAP                          
+00008106  __TI_auto_init_nobinit_nopinit_hold_wdt
+00008018  __TI_decompress_lzss                   
+000082c4  __TI_decompress_none                   
 0000ffce  __TI_int22                             
 0000ffd0  __TI_int23                             
 0000ffd2  __TI_int24                             
@@ -1271,50 +1253,32 @@ ffffffff  __TI_pprof_out_hndl
 ffffffff  __TI_prof_data_size                    
 ffffffff  __TI_prof_data_start                   
 ffffffff  __c_args__                             
-0000875a  __memcpy_far                           
-00000001  __mpu_enable                           
-000087d8  __mpu_init                             
-00008924  __mspabi_divu                          
-000088f6  __mspabi_mpyi_f5hw                     
-00008924  __mspabi_remu                          
-000089b0  _c_int00_noargs_mpu                    
+00008284  __memcpy_far                           
+00008422  _c_int00_noargs                        
 0000fffe  _reset_vector                          
 00002f60  _stack                                 
-00008944  _system_post_cinit                     
-00008940  _system_pre_init                       
-0000893a  abort                                  
-0000864a  configI2C                              
-000086ac  configPorts                            
-00008850  configTimerB0                          
-0000856a  convDec2Hex                            
-00002010  convDecData                            
-000083ec  convKey2LCDhex                         
-00008018  convertReceivedData                    
-000088b8  dataDelay                              
-00002018  delayFlag                              
+0000837a  _system_post_cinit                     
+00008376  _system_pre_init                       
+00008370  abort                                  
+00002006  colorData                              
+00008170  configI2C                              
+0000835a  configPorts                            
+00008300  configTimerB0                          
+00002000  delayFlag                              
 00008000  fram_rw_start                          
 00008000  fram_rx_start                          
-00000001  info_fram_protection                   
-0000870a  initLCD                                
-0000890e  latchClock                             
-00008884  main                                   
-00000001  program_fram_protection                
-0000201a  receiveDataCounter                     
-00002000  receivedData                           
-000081fa  resetDisplay                           
-000084ca  sendDataLCD                            
-0000879a  setDDRAM                               
-00000000  start_protection_offset_address        
+00002003  i2cDataCounter                         
+00002004  i2cStopReached                         
+00002002  i2cTransmitCompleteFlag                
+00008334  main                                   
+000081d4  sendData2Slaves                        
+00008234  sendI2C                                
 
 
 GLOBAL SYMBOLS: SORTED BY Symbol Address 
 
 address   name                                   
 -------   ----                                   
-00000000  start_protection_offset_address        
-00000001  __mpu_enable                           
-00000001  info_fram_protection                   
-00000001  program_fram_protection                
 000000a0  __STACK_SIZE                           
 00000100  SFRIE1                                 
 00000100  SFRIE1_L                               
@@ -2222,48 +2186,37 @@ address   name
 00000cba  SAC3IV                                 
 00000cba  SAC3IV_L                               
 00000cbb  SAC3IV_H                               
-00002000  receivedData                           
-00002010  convDecData                            
-00002018  delayFlag                              
-0000201a  receiveDataCounter                     
+00002000  delayFlag                              
+00002002  i2cTransmitCompleteFlag                
+00002003  i2cDataCounter                         
+00002004  i2cStopReached                         
+00002006  colorData                              
 00002f60  _stack                                 
 00003000  __STACK_END                            
+00008000  __TI_Handler_Table_Base                
 00008000  fram_rw_start                          
 00008000  fram_rx_start                          
-00008008  __TI_Handler_Table_Base                
+00008008  __TI_Handler_Table_Limit               
 00008010  __TI_CINIT_Base                        
-00008010  __TI_Handler_Table_Limit               
 00008018  __TI_CINIT_Limit                       
-00008018  convertReceivedData                    
-000081fa  resetDisplay                           
-000082fe  __TI_decompress_lzss                   
-000083ec  convKey2LCDhex                         
-000084ca  sendDataLCD                            
-0000856a  convDec2Hex                            
-000085e0  __TI_auto_init_nobinit_nopinit_hold_wdt
-0000864a  configI2C                              
-000086ac  configPorts                            
-0000870a  initLCD                                
-0000875a  __memcpy_far                           
-0000879a  setDDRAM                               
-000087d8  __mpu_init                             
-00008814  __TI_decompress_none                   
-00008850  configTimerB0                          
-00008884  main                                   
-000088b8  dataDelay                              
-000088de  BCD2Hex                                
-000088f6  __mspabi_mpyi_f5hw                     
-0000890e  latchClock                             
-00008924  __mspabi_divu                          
-00008924  __mspabi_remu                          
-0000893a  C$$EXIT                                
-0000893a  abort                                  
-00008940  _system_pre_init                       
-00008944  _system_post_cinit                     
-00008946  EUSCI_B1_I2C_ISR                       
-000089b0  _c_int00_noargs_mpu                    
-000089d0  ISR_TB0_CCR0                           
-000089da  __TI_ISR_TRAP                          
+00008018  __TI_decompress_lzss                   
+00008106  __TI_auto_init_nobinit_nopinit_hold_wdt
+00008170  configI2C                              
+000081d4  sendData2Slaves                        
+00008234  sendI2C                                
+00008284  __memcpy_far                           
+000082c4  __TI_decompress_none                   
+00008300  configTimerB0                          
+00008334  main                                   
+0000835a  configPorts                            
+00008370  C$$EXIT                                
+00008370  abort                                  
+00008376  _system_pre_init                       
+0000837a  _system_post_cinit                     
+0000837c  EUSCI_B1_I2C_ISR                       
+00008422  _c_int00_noargs                        
+0000843e  ISR_TB0_CCR0                           
+00008448  __TI_ISR_TRAP                          
 0000ffce  __TI_int22                             
 0000ffd0  __TI_int23                             
 0000ffd2  __TI_int24                             
@@ -2294,4 +2247,4 @@ ffffffff  __TI_prof_data_size
 ffffffff  __TI_prof_data_start                   
 ffffffff  __c_args__                             
 
-[982 symbols]
+[967 symbols]

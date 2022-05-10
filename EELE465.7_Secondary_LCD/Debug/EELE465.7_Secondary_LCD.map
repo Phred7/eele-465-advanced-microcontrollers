@@ -1,10 +1,10 @@
 ******************************************************************************
                   MSP430 Linker PC v20.2.5                     
 ******************************************************************************
->> Linked Tue May 10 10:41:09 2022
+>> Linked Tue May 10 12:22:25 2022
 
 OUTPUT FILE NAME:   <EELE465.7_Secondary_LCD.out>
-ENTRY POINT SYMBOL: "_c_int00_noargs_mpu"  address: 000085e0
+ENTRY POINT SYMBOL: "_c_int00_noargs_mpu"  address: 00008604
 
 
 MEMORY CONFIGURATION
@@ -16,8 +16,8 @@ MEMORY CONFIGURATION
   INFO                  00001800   00000200  00000000  00000200  RWIX
   TLVMEM                00001a00   00000200  00000000  00000200  RWIX
   BOOTCODE              00001c00   00000400  00000000  00000400  RWIX
-  RAM                   00002000   00001000  000000b4  00000f4c  RWIX
-  FRAM                  00008000   00007f80  00000612  0000796e  RWIX
+  RAM                   00002000   00001000  000000c4  00000f3c  RWIX
+  FRAM                  00008000   00007f80  00000636  0000794a  RWIX
   JTAGSIGNATURE         0000ff80   00000004  00000004  00000000  RWIX  ffff 
   BSLSIGNATURE          0000ff84   00000004  00000004  00000000  RWIX  ffff 
   BSLCONFIGURATIONSIGNA 0000ff88   00000002  00000002  00000000  RWIX  ffff 
@@ -106,7 +106,7 @@ section   page    origin      length       input sections
 
 .const     0    00008018    00000000     UNINITIALIZED
 
-.text      0    00008018    0000055e     
+.text      0    00008018    00000572     
                   00008018    000000ee     rts430x_lc_sd_eabi.lib : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
                   00008106    000000aa     final_project_lcd.obj (.text:resetDisplay)
                   000081b0    000000a0     final_project_lcd.obj (.text:sendDataLCD)
@@ -121,22 +121,22 @@ section   page    origin      length       input sections
                   000084c0    00000034     final_project_lcd.obj (.text:configTimerB0)
                   000084f4    00000034     final_project_lcd.obj (.text:main)
                   00008528    00000026     final_project_lcd.obj (.text:dataDelay)
-                  0000854e    00000016     final_project_lcd.obj (.text:latchClock)
-                  00008564    00000006     rts430x_lc_sd_eabi.lib : exit.c.obj (.text:abort)
-                  0000856a    00000006     final_project_lcd.obj (.text:convertReceivedData)
-                  00008570    00000004     rts430x_lc_sd_eabi.lib : pre_init.c.obj (.text:_system_pre_init)
-                  00008574    00000002                            : startup.c.obj (.text:_system_post_cinit)
+                  0000854e    0000001a     final_project_lcd.obj (.text:convertReceivedData)
+                  00008568    00000016     final_project_lcd.obj (.text:latchClock)
+                  0000857e    00000006     rts430x_lc_sd_eabi.lib : exit.c.obj (.text:abort)
+                  00008584    00000004                            : pre_init.c.obj (.text:_system_pre_init)
+                  00008588    00000002                            : startup.c.obj (.text:_system_post_cinit)
 
 .text:_isr 
-*          0    00008576    0000009c     
-                  00008576    0000006a     final_project_lcd.obj (.text:_isr:EUSCI_B1_I2C_ISR)
-                  000085e0    00000020     rts430x_lc_sd_eabi.lib : boot.c.obj (.text:_isr:_c_int00_noargs_mpu)
-                  00008600    0000000a     final_project_lcd.obj (.text:_isr:ISR_TB0_CCR0)
-                  0000860a    00000008     rts430x_lc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
+*          0    0000858a    000000ac     
+                  0000858a    0000007a     final_project_lcd.obj (.text:_isr:EUSCI_B1_I2C_ISR)
+                  00008604    00000020     rts430x_lc_sd_eabi.lib : boot.c.obj (.text:_isr:_c_int00_noargs_mpu)
+                  00008624    0000000a     final_project_lcd.obj (.text:_isr:ISR_TB0_CCR0)
+                  0000862e    00000008     rts430x_lc_sd_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
 
-.data      0    00002000    00000014     UNINITIALIZED
-                  00002000    00000010     final_project_lcd.obj (.data:receivedData)
-                  00002010    00000004     final_project_lcd.obj (.data)
+.data      0    00002000    00000024     UNINITIALIZED
+                  00002000    00000020     final_project_lcd.obj (.data:receivedData)
+                  00002020    00000004     final_project_lcd.obj (.data)
 
 .stack     0    00002f60    000000a0     UNINITIALIZED
                   00002f60    00000002     rts430x_lc_sd_eabi.lib : boot.c.obj (.stack)
@@ -248,9 +248,9 @@ MODULE SUMMARY
        Module                       code   ro data   rw data
        ------                       ----   -------   -------
     .\
-       final_project_lcd.obj        950    4         20     
+       final_project_lcd.obj        986    4         36     
     +--+----------------------------+------+---------+---------+
-       Total:                       950    4         20     
+       Total:                       986    4         36     
                                                             
     C:\ti\ccs1040\ccs\ccs_base\msp430\lib\FR2xx\FRWP_INIT_LIB_CCS_msp430_large_code_small_data.lib
        frwp_init.obj                60     0         0      
@@ -295,13 +295,13 @@ MODULE SUMMARY
        Stack:                       0      0         160    
        Linker Generated:            0      24        0      
     +--+----------------------------+------+---------+---------+
-       Grand Total:                 1530   74        180    
+       Grand Total:                 1566   74        196    
 
 
 LINKER GENERATED COPY TABLES
 
 __TI_cinit_table @ 00008010 records: 1, size/record: 8, table size: 8
-	.data: load addr=00008000, load size=00000008 bytes, run addr=00002000, run size=00000014 bytes, compression=lzss
+	.data: load addr=00008000, load size=00000008 bytes, run addr=00002000, run size=00000024 bytes, compression=lzss
 
 
 LINKER GENERATED HANDLER TABLE
@@ -393,7 +393,7 @@ address   name
 00000672  BAKMEM9                                
 00000673  BAKMEM9_H                              
 00000672  BAKMEM9_L                              
-00008564  C$$EXIT                                
+0000857e  C$$EXIT                                
 000002ee  CAPTIOCTL                              
 000002ef  CAPTIOCTL_H                            
 000002ee  CAPTIOCTL_L                            
@@ -472,7 +472,7 @@ address   name
 00000190  CSCTL8                                 
 00000191  CSCTL8_H                               
 00000190  CSCTL8_L                               
-00008576  EUSCI_B1_I2C_ISR                       
+0000858a  EUSCI_B1_I2C_ISR                       
 000001a0  FRCTL0                                 
 000001a1  FRCTL0_H                               
 000001a0  FRCTL0_L                               
@@ -500,7 +500,7 @@ address   name
 000006c0  ICCSC                                  
 000006c1  ICCSC_H                                
 000006c0  ICCSC_L                                
-00008600  ISR_TB0_CCR0                           
+00008624  ISR_TB0_CCR0                           
 000004c4  MAC                                    
 000004da  MAC32H                                 
 000004db  MAC32H_H                               
@@ -1230,7 +1230,7 @@ address   name
 00008018  __TI_CINIT_Limit                       
 00008008  __TI_Handler_Table_Base                
 00008010  __TI_Handler_Table_Limit               
-0000860a  __TI_ISR_TRAP                          
+0000862e  __TI_ISR_TRAP                          
 00008250  __TI_auto_init_nobinit_nopinit_hold_wdt
 00008018  __TI_decompress_lzss                   
 00008484  __TI_decompress_none                   
@@ -1265,26 +1265,26 @@ ffffffff  __c_args__
 000083ca  __memcpy_far                           
 00000001  __mpu_enable                           
 00008448  __mpu_init                             
-000085e0  _c_int00_noargs_mpu                    
+00008604  _c_int00_noargs_mpu                    
 0000fffe  _reset_vector                          
 00002f60  _stack                                 
-00008574  _system_post_cinit                     
-00008570  _system_pre_init                       
-00008564  abort                                  
+00008588  _system_post_cinit                     
+00008584  _system_pre_init                       
+0000857e  abort                                  
 000082ba  configI2C                              
 0000831c  configPorts                            
 000084c0  configTimerB0                          
-0000856a  convertReceivedData                    
+0000854e  convertReceivedData                    
 00008528  dataDelay                              
-00002010  delayFlag                              
+00002020  delayFlag                              
 00008000  fram_rw_start                          
 00008000  fram_rx_start                          
 00000001  info_fram_protection                   
 0000837a  initLCD                                
-0000854e  latchClock                             
+00008568  latchClock                             
 000084f4  main                                   
 00000001  program_fram_protection                
-00002012  receiveDataCounter                     
+00002022  receiveDataCounter                     
 00002000  receivedData                           
 00008106  resetDisplay                           
 000081b0  sendDataLCD                            
@@ -2208,8 +2208,8 @@ address   name
 00000cba  SAC3IV_L                               
 00000cbb  SAC3IV_H                               
 00002000  receivedData                           
-00002010  delayFlag                              
-00002012  receiveDataCounter                     
+00002020  delayFlag                              
+00002022  receiveDataCounter                     
 00002f60  _stack                                 
 00003000  __STACK_END                            
 00008000  fram_rw_start                          
@@ -2232,16 +2232,16 @@ address   name
 000084c0  configTimerB0                          
 000084f4  main                                   
 00008528  dataDelay                              
-0000854e  latchClock                             
-00008564  C$$EXIT                                
-00008564  abort                                  
-0000856a  convertReceivedData                    
-00008570  _system_pre_init                       
-00008574  _system_post_cinit                     
-00008576  EUSCI_B1_I2C_ISR                       
-000085e0  _c_int00_noargs_mpu                    
-00008600  ISR_TB0_CCR0                           
-0000860a  __TI_ISR_TRAP                          
+0000854e  convertReceivedData                    
+00008568  latchClock                             
+0000857e  C$$EXIT                                
+0000857e  abort                                  
+00008584  _system_pre_init                       
+00008588  _system_post_cinit                     
+0000858a  EUSCI_B1_I2C_ISR                       
+00008604  _c_int00_noargs_mpu                    
+00008624  ISR_TB0_CCR0                           
+0000862e  __TI_ISR_TRAP                          
 0000ffce  __TI_int22                             
 0000ffd0  __TI_int23                             
 0000ffd2  __TI_int24                             

@@ -19,9 +19,10 @@
 #include <msp430.h> 
 
 #define lcdAddress 0x069
+#define lcdPackets 16
 
 int delayFlag = 0;      //{"1", Hold Delay; "0", No delay}
-unsigned int receivedData[8] = {0,0,0,0,0,0,0,0}; // DO NOT CHANGE DATA TYPE
+unsigned int receivedData[lcdPackets] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; // DO NOT CHANGE DATA TYPE
 // {n, ambient integer, ambient decimal, mode, minutes,
 // seconds, plant integer, plant decimal}
 unsigned int convDecData[4] = {0,0,0,0};      // Decimal values of temp and time
@@ -167,7 +168,7 @@ void resetDisplay(void){
     sendDataLCD(1,0b00111010);      // :
 
     // Rotational Target Position
-    setDDRAM(1,0);                  // TODO may be 1,1
+    setDDRAM(1,0);
     sendDataLCD(1,0b01010010);      // R
     sendDataLCD(1,0b01010100);      // T
     sendDataLCD(1,0b00111010);      // :
@@ -281,6 +282,7 @@ unsigned char convDec2Hex(int number){
            hexNumber = 0x22;
            break;
        default:
+           hexNumber = 0x7D;
            break;
     }
     return hexNumber;
@@ -294,6 +296,34 @@ int BCD2Hex(unsigned int hexValue){
 
 void convertReceivedData(void){
     P1OUT ^= BIT0;
+
+    // Velocity Target
+    setDDRAM(0, 3);
+    sendDataLCD(1, 0b00110110);
+//    sendDataLCD(0, convDec2Hex(receivedData[5]));
+//    sendDataLCD(0, convDec2Hex(receivedData[6]));
+//    sendDataLCD(0, convDec2Hex(receivedData[7]));
+
+//    // Velocity Actual
+//    setDDRAM(0, 11);
+//    sendDataLCD(0, receivedData[0]);
+//    sendDataLCD(0, receivedData[1]);
+//    sendDataLCD(0, receivedData[2]);
+//    sendDataLCD(0, receivedData[3]);
+//
+//    // Rotational Position Target
+//    setDDRAM(1, 4);
+//    sendDataLCD(0, receivedData[12]);
+//    sendDataLCD(0, receivedData[13]);
+//    sendDataLCD(0, receivedData[14]);
+//    sendDataLCD(0, receivedData[15]);
+//
+//    // Rotational Position Actual
+//    setDDRAM(1, 12);
+//    sendDataLCD(0, receivedData[8]);
+//    sendDataLCD(0, receivedData[9]);
+//    sendDataLCD(0, receivedData[10]);
+//    sendDataLCD(0, receivedData[11]);
 
 //    // N value
 //    setDDRAM(0,4);
@@ -443,7 +473,7 @@ void configTimerB0(void){
     //-- Setup Timer Overflow IRQ
     TB0CCTL0 &= ~CCIE;          // Disable TB0 Overflow IRQ
     TB0CCTL0 &= ~CCIFG;         // Clear CCR0 flag
-    __enable_interrupt();       // Enable Maskable IRQs
+//    __enable_interrupt();       // Enable Maskable IRQs
 
     return;
 }
@@ -479,6 +509,8 @@ int main(void){
     configPorts();
 
     PM5CTL0 &= ~LOCKLPM5;       // Turn on GPIO
+
+    __enable_interrupt();
 
     configTimerB0();
 
@@ -519,7 +551,12 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         UCB1CTLW0 &= ~UCSWRST;
         P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
         UCB1IE = r;             // Put IE back
-//        UCB1IFG &= ~UCCLTOIFG;
+
+        // TODO: reset any counters and flags.
+        receiveDataCounter = 0;
+
+        UCB1IFG &= ~UCSTPIFG; // TODO: these may cause problems...
+        UCB1STATW &= ~UCBBUSY;
         break;
     case 0x16:
         /*
@@ -528,7 +565,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         receivedData[receiveDataCounter] = UCB1RXBUF;
         receiveDataCounter++;
 
-        if (receiveDataCounter == 8){
+        if (receiveDataCounter >= lcdPackets){
             P6OUT ^= BIT6;
             receiveDataCounter = 0;
         }

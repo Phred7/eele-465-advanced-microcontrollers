@@ -1,0 +1,1 @@
+"./Master_I2CTest.obj" "../lnk_msp430fr2355.cmd" -llibc.a 
