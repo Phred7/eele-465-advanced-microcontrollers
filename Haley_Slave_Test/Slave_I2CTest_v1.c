@@ -18,7 +18,7 @@ void configI2C(void) {
     UCB1CTLW0 |= UCMODE_3 + UCSYNC;    // I2C mode, sync mode (Do not set clock in slave mode)
 
     UCB1CTLW0 &= ~UCMST;
-    UCB1I2COA0 = 0x69 | UCOAEN;        // Slave address is 0x77; enable it
+    UCB1I2COA0 = 0x42 | UCOAEN;        // Slave address is 0x77; enable it
     UCB1CTLW0 &= ~UCTR;                // set to receive
     UCB1CTLW1 &= ~UCSWACK;             // auto ACK
 
@@ -88,8 +88,8 @@ __interrupt void EUSCI_B1_I2C_ISR(void){
         UCB1IE = r;             // Put IE back
 
         receiveDataCounter = 0;
-        UCB1IFG &= ~UCSTPIFG;
-        UCB1STATW &= ~UCBBUSY;
+//        UCB1IFG &= ~UCSTPIFG;
+//        UCB1STATW &= ~UCBBUSY;
         break;
     case 0x16:
         /*
