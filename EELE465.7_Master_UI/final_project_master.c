@@ -56,7 +56,7 @@ unsigned char teensyDataToSend[9] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 unsigned char teensyDataRecieved[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 unsigned int i2cDataCounter = 0;
 
-// Data values TODO: use last values to update LED patterns.
+// Data values
 unsigned char targetFlywheelVelocityHex[4] = { 0x00, 0x00, 0x00, 0x00 };
 unsigned char actualFlywheelVelocityHex[4] = { 0x00, 0x00, 0x00, 0x00 };
 long targetFlywheelVelocity = 0;
@@ -231,12 +231,29 @@ void systemResetRestart(void) {
     memset(ledDataToSend, 0x00, 1);
     memset(teensyDataToSend, 0x00, 9);
     memset(teensyDataRecieved, 0x00, 8);
+    memset(targetFlywheelVelocityHex, 0x00, 4);
+    memset(actualFlywheelVelocityHex, 0x00, 4);
 
-    targetFlywheelVelocity = 0.0;
-    actualFlywheelVelocity = 0.0;
+    keypadValue = 0x00;
+    keypadEntryCounter = 0x00;
+    memset(keypadEntries, 0x00, 4);
+    publishKeypadValueFlag = 0x00;
+
+    targetFlywheelVelocity = 0;
+    lastTargetFlywheelVelocity = 0;
+    actualFlywheelVelocity = 0;
+    lastTargetFlywheelVelocity = 0;
     targetRotationalPosition = 0.0;
     actualRotationalPosition = 0.0;
     adcValue = 0.0;
+    resetButtonValue = 0x00;
+    switchValue = 0x00;
+
+    timerInterruptFlag = 0x00;
+    timerInterruptCounter = 0x00;
+
+    i2cDataCounter = 0;
+
 }
 
 void systemReset(void) {
@@ -335,9 +352,6 @@ void deconstructRotationalActualAngle(void) {
 }
 
 void constructIndexer(void) {
-    /*
-     * TODO: updates packets to reflect the state of the indexer... an LED too?
-     */
     teensyDataToSend[8] = switchValue;
 }
 
@@ -345,6 +359,7 @@ void constructLEDIndicatorPattern(void) {
     /*
      * TODO: use current, last and target fly-wheel data values to determine what pattern to display on the LEDs
      */
+    ledDataToSend[0] = 0xBB;
 }
 
 
@@ -421,17 +436,39 @@ int main(void)
     while(1) {
 
         if (resetButtonValue == 0x01) {
+            __disable_interrupt();
             disableTimerInterrupt();
             resetButtonValue = 0x00;
             systemReset();
+
+            /*
+             * Disconnect I2C
+             */
+            volatile unsigned char ieBits;
+            ieBits = UCB1IE;             // Save current IE bits
+            P4SEL0 &= ~(BIT6);      // Generate NACK by releasing SDA
+            P4SEL0 &= ~(BIT7);      //  then SCL by disconnecting from the I2C
+            UCB1CTLW0 |= UCSWRST;   // Reset
+            UCB1CTLW0 &= ~UCSWRST;
             while (resetButtonValue == 0x00) {
-                /*
-                 * TODO: constantly send stops? Or nacks?
-                 */
+                P1OUT |= BIT0;
+                P6OUT |= BIT6;
             }
-            delay(1000);
+            /*
+             * Reconnect I2C
+             */
+            UCB1CTLW0 |= UCSWRST;   // Reset
+            UCB1CTLW0 &= ~UCSWRST;
+            P4SEL0 |=  (BIT6|BIT7); // Re-connect pins to I2C
+            UCB1IE = ieBits;             // Put IE back
+
+            P1OUT &= ~BIT0;
+            P6OUT &= ~BIT6;
+            delay(500);
             systemResetRestart();
+            delay(500);
             enableTimerInterrupt(1873);
+            __enable_interrupt();
         }
 
         if (publishKeypadValueFlag == 0x01) {
