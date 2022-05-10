@@ -420,6 +420,13 @@ void convertFourCharToFlywheelTargetVelocity(void) {
 
 int sendI2C(int slaveAddress) {
 
+    if ((UCB1STATW & UCBBUSY) != 0 ) {
+        UCB1IFG |= UCCLTOIFG;
+        delay(10);
+//        UCB1IFG &= ~UCSTPIFG;
+        // UCB1STATW &= ~UCBBUSY;
+    }
+
 //    if (slaveAddress != ledAddress && slaveAddress != lcdAddress && slaveAddress != teensyAddress) {
 //        return 1;
 //    }
@@ -563,6 +570,7 @@ int main(void)
                 P1OUT |= BIT0;
                 P6OUT |= BIT6;
             }
+            while ((P4IN & BIT0) == 0x01);
 
             // Reconnect I2C
 //            UCB1CTLW0 |= UCSWRST;   // Reset
