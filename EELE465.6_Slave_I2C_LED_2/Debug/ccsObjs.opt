@@ -1,1 +1,1 @@
-"./p6_led_slave.obj" "../lnk_msp430fr2310.cmd" -llibc.a 
+"./p6_led_slave.obj" "../lnk_msp430fr2355.cmd" -llibc.a 
