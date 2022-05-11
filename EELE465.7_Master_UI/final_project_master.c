@@ -62,6 +62,7 @@ unsigned char i2cStopReached = 0x00;
 unsigned char targetFlywheelVelocityHex[4] = { 0x00, 0x00, 0x00, 0x00 };
 unsigned char actualFlywheelVelocityHex[4] = { 0x00, 0x00, 0x00, 0x00 };
 long targetFlywheelVelocity = 0;
+long targetFlywheelVelocityForLEDs = 0;
 long lastTargetFlywheelVelocity = 0;
 long actualFlywheelVelocity = 0;
 long lastActualFlywheelVelcity = 0;
@@ -278,6 +279,7 @@ void constructFlywheelTargetVelocity(void) {
         teensyDataToSend[1] = targetFlywheelVelocityHex[1];
         teensyDataToSend[2] = targetFlywheelVelocityHex[2];
         teensyDataToSend[3] = targetFlywheelVelocityHex[3];
+        targetFlywheelVelocityForLEDs = targetFlywheelVelocity;
     } else if (targetFlywheelVelocity == 0) {
         // memset(targetFlywheelVelocityHex, 0x00, 4);
     }
@@ -369,7 +371,9 @@ void constructLEDIndicatorPattern(void) {
     /*
      * TODO: use current, last and target fly-wheel data values to determine what pattern to display on the LEDs
      */
-    if (targetFlywheelVelocity - 15 > actualFlywheelVelocity) {
+    if (targetFlywheelVelocity == 0 && actualFlywheelVelocity == 0) {
+        ledDataToSend[0] = 0x11;
+    } else if (targetFlywheelVelocity - 15 > actualFlywheelVelocity) {
         ledDataToSend[0] = 0x81;
     } else if (targetFlywheelVelocity + 15 < actualFlywheelVelocity) {
         ledDataToSend[0] = 0x41;
@@ -550,7 +554,7 @@ int main(void)
 
     __enable_interrupt();
 
-    enableTimerInterrupt(9365);  // timer interrupt 1873 = every .1 seconds.
+    enableTimerInterrupt(4683);  // timer interrupt 1873 = every .1 seconds.
 
     while(1) {
 
@@ -575,7 +579,7 @@ int main(void)
             P1OUT &= ~BIT0;
             P6OUT &= ~BIT6;
             systemResetRestart();
-            enableTimerInterrupt(9365);
+            enableTimerInterrupt(4683);
             __enable_interrupt();
             resetButtonValue = 0x00;
             P4IFG &= ~BIT0;
