@@ -90,7 +90,7 @@ void configI2C(void) {
     UCB1CTLW0 |= UCSWRST;
 
     UCB1CTLW0 |= UCSSEL__SMCLK;
-    UCB1BRW = 8; //10
+    UCB1BRW = 10; //8
     UCB1CTLW0 |= UCMODE_3 + UCSYNC + UCMST;      // put into I2C mode, , put into master mode
 //    UCB1CTLW0 |= UCTR;           // Put into Tx mode
     UCB1I2CSA = lcdAddress;
@@ -238,7 +238,10 @@ void systemResetRestart(void) {
 
     keypadValue = 0x00;
     keypadEntryCounter = 0x00;
-    memset(keypadEntries, 0x00, 4);
+    keypadEntries[3] = 0x14;
+    keypadEntries[2] = 0x14;
+    keypadEntries[1] = 0x14;
+    keypadEntries[0] = 0x14;
     publishKeypadValueFlag = 0x00;
 
     targetFlywheelVelocity = 0;
@@ -269,10 +272,15 @@ void constructFlywheelTargetVelocity(void) {
     /*
      * Populate teensy and lcd i2c packets with target flywheel velocity
      */
-    teensyDataToSend[0] = targetFlywheelVelocityHex[0];
-    teensyDataToSend[1] = targetFlywheelVelocityHex[1];
-    teensyDataToSend[2] = targetFlywheelVelocityHex[2];
-    teensyDataToSend[3] = targetFlywheelVelocityHex[3];
+
+    if (publishKeypadValueFlag == 0x01) {
+        teensyDataToSend[0] = targetFlywheelVelocityHex[0];
+        teensyDataToSend[1] = targetFlywheelVelocityHex[1];
+        teensyDataToSend[2] = targetFlywheelVelocityHex[2];
+        teensyDataToSend[3] = targetFlywheelVelocityHex[3];
+    } else if (targetFlywheelVelocity == 0) {
+        // memset(targetFlywheelVelocityHex, 0x00, 4);
+    }
 
     lcdDataToSend[4] = targetFlywheelVelocityHex[0];
     lcdDataToSend[5] = targetFlywheelVelocityHex[1];
@@ -361,7 +369,7 @@ void constructLEDIndicatorPattern(void) {
     /*
      * TODO: use current, last and target fly-wheel data values to determine what pattern to display on the LEDs
      */
-    ledDataToSend[0] = 0x11;
+    ledDataToSend[0] = 0x21;
 }
 
 
@@ -369,13 +377,28 @@ void convertFourCharToFlywheelTargetVelocity(void) {
     /*
      * Converts keypadEntries into double targetFlywheelVelocity and updates the targetFlywheelVelocityHex
      */
+    int velocityDigitCounter = keypadEntryCounter;
+    int itemIndex;
+    for (itemIndex = 0; itemIndex<4; itemIndex++) {
+        targetFlywheelVelocityHex[itemIndex] = keypadEntries[itemIndex];
+    }
+
     lastTargetFlywheelVelocity = targetFlywheelVelocity;
     targetFlywheelVelocity = 0.0;
-    memcpy(targetFlywheelVelocityHex, keypadEntries, sizeof(keypadEntries));
+    if (velocityDigitCounter < 4) {
+        int shiftEntryDecimalPlaces;
+        for (shiftEntryDecimalPlaces = 0; shiftEntryDecimalPlaces < (4 - velocityDigitCounter); shiftEntryDecimalPlaces++) {
+            targetFlywheelVelocityHex[3] = targetFlywheelVelocityHex[2];
+            targetFlywheelVelocityHex[2] = targetFlywheelVelocityHex[1];
+            targetFlywheelVelocityHex[1] = targetFlywheelVelocityHex[0];
+            targetFlywheelVelocityHex[0] = 0x14;
+        }
+    }
+
     int arrayIndex;
     for(arrayIndex = 0; arrayIndex < 4; arrayIndex++) {
         int decimalValue = 0;
-        switch(keypadEntries[arrayIndex]) {
+        switch(targetFlywheelVelocityHex[arrayIndex]) {
         case 0x088:
             decimalValue = 1;
             break;
@@ -410,6 +433,7 @@ void convertFourCharToFlywheelTargetVelocity(void) {
         targetFlywheelVelocityHex[arrayIndex] = decimalValue;
         targetFlywheelVelocity += (decimalValue) * pow(10, (3 - arrayIndex));
     }
+    return;
 }
 
 //-- END Logic -------------------------
@@ -451,6 +475,8 @@ int sendI2C(int slaveAddress) {
 
     UCB1TXBUF = 0x00;
 
+    i2cDataCounter = 0x00;
+
     return 0;
 }
 
@@ -459,29 +485,6 @@ int receiveI2C(int slaveAddress) {
     if (slaveAddress != teensyAddress) {
         return 1;
     }
-
-    /*
-     * Generate First Byte (Address) in packet
-     */
-    UCB1TBCNT = 1;
-
-    UCB1CTLW0 |= UCTR;   // Tx
-
-    i2cDataCounter = 0x00;
-    UCB1TBCNT = 1;
-
-    UCB1CTLW0 |= UCTXSTT;   // Generate START cond.
-
-    i2cTransmitCompleteFlag = 0x03;
-
-//    while ((UCB1IFG & UCSTPIFG) == 0 ); //wait for STOP
-//        UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
-
-    while (i2cStopReached == 0x00);
-    i2cStopReached = 0x00;
-    UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
-
-    i2cTransmitCompleteFlag = 0x00;
 
     /*
      * Receive data bytes
@@ -493,6 +496,8 @@ int receiveI2C(int slaveAddress) {
     default:
         return 1;
     }
+
+    i2cDataCounter = 0x00;
 
     UCB1I2CSA = slaveAddress;
 
@@ -506,6 +511,8 @@ int receiveI2C(int slaveAddress) {
     while (i2cStopReached == 0x00);
     i2cStopReached = 0x00;
     UCB1IFG &= ~UCSTPIFG;           // clear STOP flag
+
+    i2cDataCounter = 0x00;
 
     return 0;
 }
@@ -535,7 +542,7 @@ int main(void)
 
     __enable_interrupt();
 
-    enableTimerInterrupt(1873);  // timer interrupt every .1 seconds.
+    enableTimerInterrupt(9365);  // timer interrupt 1873 = every .1 seconds.
 
     while(1) {
 
@@ -560,7 +567,7 @@ int main(void)
             P1OUT &= ~BIT0;
             P6OUT &= ~BIT6;
             systemResetRestart();
-            enableTimerInterrupt(1873);
+            enableTimerInterrupt(9365);
             __enable_interrupt();
             resetButtonValue = 0x00;
             P4IFG &= ~BIT0;
@@ -568,27 +575,23 @@ int main(void)
             P4IFG &= ~BIT0;
         }
 
-        if (publishKeypadValueFlag == 0x01) {
-            convertFourCharToFlywheelTargetVelocity();
-            publishKeypadValueFlag = 0x00;
-        }
-
         if (timerInterruptFlag >= 0x01) { // triggers on ~0.1sec
             timerInterruptFlag = 0x00;
+            convertFourCharToFlywheelTargetVelocity();
             constructFlywheelTargetVelocity();      // updates Teensy and LCD
-//            receiveI2C(teensyAddress);
+            receiveI2C(teensyAddress);
             constructRotationalTargetAngle();       // updates LCD and Teensy
             deconstructFlywheelActualVelocity();    // relies on receive from Teensy. Updates LCD
             deconstructRotationalActualAngle();     // relies on receive from Teensy. Updates LCD
             constructLEDIndicatorPattern();         // relies on receive from Teensy. Updates LEDs
-//            sendI2C(lcdAddress);
+            sendI2C(lcdAddress);
             sendI2C(ledAddress);
             P6OUT ^= BIT6;
 
             if (timerInterruptCounter >= 0x05) { // triggers on ~0.5sec
                timerInterruptCounter = 0x00;
                constructIndexer();      // updates teensy
-//               sendI2C(teensyAddress);
+               sendI2C(teensyAddress);
                P1OUT ^= BIT0;
             }
         }
@@ -612,8 +615,6 @@ __interrupt void ISR_TB0_CCR0(void) {
 
     switchValue = (P4IN & BIT1) >> 1;
 
-    if (switchValue)
-
     timerInterruptFlag = 0x01;
     timerInterruptCounter++;
 
@@ -633,28 +634,36 @@ __interrupt void ISR_P3_Keypad(void) {
 
     buttonValue = buttonValue & P3IN;   // Add both nibbles together
 
-    keypadValue = buttonValue;
+//    keypadValue = buttonValue;
 
-    if (keypadValue == 0x012) {
+    if (buttonValue == 0x012) {
         keypadEntryCounter = 0;
-        memset(keypadEntries, 0x00, 4);
+        keypadEntries[3] = 0x14;
+        keypadEntries[2] = 0x14;
+        keypadEntries[1] = 0x14;
+        keypadEntries[0] = 0x14;
+        publishKeypadValueFlag = 0x00;
+    } else if (buttonValue == 0x18) {
         publishKeypadValueFlag = 0x01;
-    } else if (keypadValue == 0x18) {
-        if (keypadEntryCounter < 4) {
-            int shiftEntryDecimalPlaces;
-            for (shiftEntryDecimalPlaces = 0; shiftEntryDecimalPlaces < (4 - keypadEntryCounter); shiftEntryDecimalPlaces++) {
-                keypadEntries[3] = keypadEntries[2];
-                keypadEntries[2] = keypadEntries[1];
-                keypadEntries[1] = keypadEntries[0];
-                keypadEntries[0] = 0x14;
-            }
+    } else if (buttonValue == 0x088 || buttonValue == 0x084 || buttonValue == 0x082 || buttonValue == 0x048 || buttonValue == 0x044 || buttonValue == 0x042 || buttonValue == 0x028 || buttonValue == 0x024 || buttonValue == 0x022 || buttonValue == 0x014) {
+        if (publishKeypadValueFlag == 0x01) {
+            publishKeypadValueFlag = 0x00;
+            keypadEntryCounter = 0;
+            keypadEntries[3] = 0x14;
+            keypadEntries[2] = 0x14;
+            keypadEntries[1] = 0x14;
+            keypadEntries[0] = 0x14;
         }
-        keypadEntryCounter = 0;
-        publishKeypadValueFlag = 0x01;
-    } else if (keypadValue != 0x81 && keypadValue != 0x41 && keypadValue != 0x21 && keypadValue != 0x11 && publishKeypadValueFlag == 0x00 && keypadValue != 0x00) { // not A, B, C, D, 0 and publishKeypadValueFlag is not active (is 0x00)
+
         if (keypadEntryCounter < 4) {
-            keypadEntries[keypadEntryCounter] = keypadValue;
+            keypadEntries[keypadEntryCounter] = buttonValue;
             keypadEntryCounter++;
+        } else if (targetFlywheelVelocity == 0) {
+            keypadEntryCounter = 1;
+            keypadEntries[3] = 0x14;
+            keypadEntries[2] = 0x14;
+            keypadEntries[1] = 0x14;
+            keypadEntries[0] = buttonValue;
         }
     }
 
