@@ -13,6 +13,7 @@ int receiveDataCounter = 0;
 
 long actualFlywheelVelocity = 0;
 long targetFlywheelVelocity = 0;
+long maxFlywheelVelocity = 6000;
 float actualRotationalPosition = 0.0;
 float targetRotationalPosition = 0.0;
 
@@ -66,19 +67,17 @@ void loop() {
 
   if (updateLCD == true) {
     updateLCD = false;
-    lcd.setCursor ( 12, 0 );
-    if (actualFlywheelVelocity > 999) {
-      lcd.print("");
-    } else if (actualFlywheelVelocity > 99) {
-      lcd.print(" ");
-    } else if (actualFlywheelVelocity > 9) {
-      lcd.print("  ");
+
+    // Write target flywheel velocity to LCD
+    if (targetFlywheelVelocity >= maxFlywheelVelocity) {
+      lcd.setCursor ( 5, 0 );
+      lcd.print("MAX"); 
+      targetFlywheelVelocity = maxFlywheelVelocity;
     } else {
+      lcd.setCursor ( 5, 0 );
       lcd.print("   ");
     }
-    lcd.print(actualFlywheelVelocity);
-
-    lcd.setCursor ( 12, 1 );
+    lcd.setCursor ( 12, 0 );
     if (targetFlywheelVelocity > 999) {
       lcd.print("");
     } else if (targetFlywheelVelocity > 99) {
@@ -90,7 +89,39 @@ void loop() {
     }
     lcd.print(targetFlywheelVelocity);
 
+    // Write target flywheel velocity to LCD
+    if (actualFlywheelVelocity >= maxFlywheelVelocity) {
+      lcd.setCursor ( 5, 1 );
+      lcd.print("MAX"); 
+    } else {
+      lcd.setCursor ( 5, 1 );
+      lcd.print("   ");
+    }
+    lcd.setCursor ( 12, 1 );
+    if (actualFlywheelVelocity > 999) {
+      lcd.print("");
+    } else if (actualFlywheelVelocity > 99) {
+      lcd.print(" ");
+    } else if (actualFlywheelVelocity > 9) {
+      lcd.print("  ");
+    } else {
+      lcd.print("   ");
+    }
+    lcd.print(actualFlywheelVelocity);
+
+    // Write target rotational position to LCD
     lcd.setCursor ( 10, 2 );
+    if (targetRotationalPosition > 99) {
+      lcd.print("");
+    } else if (targetRotationalPosition > 9) {
+      lcd.print(" ");
+    } else {
+      lcd.print("  ");
+    }
+    lcd.print(targetRotationalPosition);
+
+    // Write actual rotational position to LCD
+    lcd.setCursor ( 10, 3 );
     if (actualRotationalPosition > 99) {
       lcd.print("");
     } else if (actualRotationalPosition > 9) {
@@ -100,15 +131,6 @@ void loop() {
     }
     lcd.print(actualRotationalPosition);
 
-    lcd.setCursor ( 10, 3 );
-    if (targetRotationalPosition > 99) {
-      lcd.print("");
-    } else if (targetRotationalPosition > 9) {
-      lcd.print(" ");
-    } else {
-      lcd.print("  ");
-    }
-    lcd.print(targetRotationalPosition);
     
   }
 
@@ -139,13 +161,13 @@ void receiveEvent(int numberOfBytes)
     unsigned char c = Wire1.read();        // receive byte
     Serial.print(c);             // print the character
     if (receiveDataCounter < 4) {
-      targetFlywheelVelocity += ((int)c) * pow(10, (3 - receiveDataCounter));
+      actualFlywheelVelocity += ((int)c) * pow(10, (3 - receiveDataCounter));
     } else if (receiveDataCounter < 8) {
-      actualFlywheelVelocity += ((int)c) * pow(10, (7 - receiveDataCounter));
+      targetFlywheelVelocity += ((int)c) * pow(10, (7 - receiveDataCounter));
     } else if (receiveDataCounter < 12) {
-      targetRotationalPosition += ((int)c) * pow(10, (10 - receiveDataCounter));
+      actualRotationalPosition += ((int)c) * pow(10, (10 - receiveDataCounter));
     } else if (receiveDataCounter < 16) {
-      actualRotationalPosition += ((int)c) * pow(10, (14 - receiveDataCounter)); 
+      targetRotationalPosition += ((int)c) * pow(10, (14 - receiveDataCounter)); 
     }
     receiveDataCounter++;
   }
