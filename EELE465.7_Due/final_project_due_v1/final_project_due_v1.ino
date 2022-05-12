@@ -34,21 +34,21 @@ void setup()
   lcd.backlight();  //open the backlight =
    
   lcd.setCursor ( 0, 0 );            // go to the top left corner
-  lcd.print("VelT:"); // write this string on the top row //"    Hello,world!    "
+  lcd.print("VelT:");                //"    Hello,world!    "
   lcd.setCursor ( 15, 0 );
   lcd.print("0");
   lcd.setCursor ( 17, 0 );
   lcd.print("RPM");
   
   lcd.setCursor ( 0, 1 );            // go to the 2nd row
-  lcd.print("VelA: "); // pad string with spaces for centering
+  lcd.print("VelA: ");
   lcd.setCursor ( 15, 1 );
   lcd.print("0");
   lcd.setCursor ( 17, 1 );
   lcd.print("RPM");
   
   lcd.setCursor ( 0, 2 );            // go to the third row
-  lcd.print("RotT: "); // pad with spaces for centering
+  lcd.print("RotT: ");
   lcd.setCursor ( 15, 2 );
   lcd.print("0");
   lcd.setCursor ( 17, 2 );
@@ -148,15 +148,24 @@ void loop() {
 
 void receiveEvent(int numberOfBytes)
 {
+  
+  Serial.print("RecieveEvent:\t");
+  Serial.print(numberOfBytes);
+  Serial.print("Bytes\t");
+
+  if (numberOfBytes != 16) {
+    while (Wire1.available() > 1) { // loop through all but the last
+      unsigned char c = Wire1.read(); 
+    }
+    Serial.println("Refused Bytes");
+    return;
+  }
   receiveDataCounter = 0;
   actualFlywheelVelocity = 0;
   targetFlywheelVelocity = 0;
   actualRotationalPosition = 0.0;
   targetRotationalPosition = 0.0;
   
-  Serial.print("RecieveEvent:\t");
-  Serial.print(numberOfBytes);
-  Serial.print("Bytes\t");
   while(Wire1.available() > 1) {  // loop through all but the last
     unsigned char c = Wire1.read();        // receive byte
     Serial.print(c);             // print the character
