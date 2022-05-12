@@ -1,19 +1,26 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
+
 LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
+// method signitures
 void receiveEvent(int numberOfBytes);
+void timerISR(void);
 
 const int ledPin = LED_BUILTIN;
 
 int integer = 0;
 int ledState = LOW;
 int updateLCD = false;
+
+// i2c
 int receiveDataCounter = 0;
+int i2cConnected = false;
+int i2cDisconnectedCounter = 0;
 
 long actualFlywheelVelocity = 0;
 long targetFlywheelVelocity = 0;
-long maxFlywheelVelocity = 6000;
+long maxFlywheelVelocity = 5500;
 float actualRotationalPosition = 0.0;
 float targetRotationalPosition = 0.0;
 
@@ -21,6 +28,12 @@ String actualFlywheelString;
 String targetFlywheelString;
 String actualRotationalString;
 String targetRotationalString;
+
+// timer
+int timerDelayMS = 250;
+float deltaTime = (timerDelayMS / 1000.0);
+float currentTimeMS = 0;
+float lastTimeMS = 0;
 
 void setup()
 {
@@ -60,90 +73,101 @@ void setup()
   lcd.print("0");
   lcd.setCursor ( 17, 3 );
   lcd.print("deg");
-
 }
 
 void loop() {
 
-  if (updateLCD == true) {
-    updateLCD = false;
+  if (i2cConnected == true) {
+    if (updateLCD == true) {
+      updateLCD = false;
+  
+      // Write target flywheel velocity to LCD
+      if (targetFlywheelVelocity >= maxFlywheelVelocity) {
+        lcd.setCursor ( 5, 0 );
+        lcd.print("MAX"); 
+        targetFlywheelVelocity = maxFlywheelVelocity;
+      } else {
+        lcd.setCursor ( 5, 0 );
+        lcd.print("   ");
+      }
+      lcd.setCursor ( 12, 0 );
+      if (targetFlywheelVelocity > 999) {
+        lcd.print("");
+      } else if (targetFlywheelVelocity > 99) {
+        lcd.print(" ");
+      } else if (targetFlywheelVelocity > 9) {
+        lcd.print("  ");
+      } else {
+        lcd.print("   ");
+      }
+      lcd.print(targetFlywheelVelocity);
+  
+      // Write target flywheel velocity to LCD
+      if (actualFlywheelVelocity >= maxFlywheelVelocity) {
+        lcd.setCursor ( 5, 1 );
+        lcd.print("MAX"); 
+      } else {
+        lcd.setCursor ( 5, 1 );
+        lcd.print("   ");
+      }
+      lcd.setCursor ( 12, 1 );
+      if (actualFlywheelVelocity > 999) {
+        lcd.print("");
+      } else if (actualFlywheelVelocity > 99) {
+        lcd.print(" ");
+      } else if (actualFlywheelVelocity > 9) {
+        lcd.print("  ");
+      } else {
+        lcd.print("   ");
+      }
+      lcd.print(actualFlywheelVelocity);
+  
+      // Write target rotational position to LCD
+      lcd.setCursor ( 10, 2 );
+      if (targetRotationalPosition > 99) {
+        lcd.print("");
+      } else if (targetRotationalPosition > 9) {
+        lcd.print(" ");
+      } else {
+        lcd.print("  ");
+      }
+      lcd.print(targetRotationalPosition);
+  
+      // Write actual rotational position to LCD
+      lcd.setCursor ( 10, 3 );
+      if (actualRotationalPosition > 99) {
+        lcd.print("");
+      } else if (actualRotationalPosition > 9) {
+        lcd.print(" ");
+      } else {
+        lcd.print("  ");
+      }
+      lcd.print(actualRotationalPosition);
+  
+      
+    }
+    delay(10);
 
-    // Write target flywheel velocity to LCD
-    if (targetFlywheelVelocity >= maxFlywheelVelocity) {
-      lcd.setCursor ( 5, 0 );
-      lcd.print("MAX"); 
-      targetFlywheelVelocity = maxFlywheelVelocity;
-    } else {
-      lcd.setCursor ( 5, 0 );
-      lcd.print("   ");
-    }
-    lcd.setCursor ( 12, 0 );
-    if (targetFlywheelVelocity > 999) {
-      lcd.print("");
-    } else if (targetFlywheelVelocity > 99) {
-      lcd.print(" ");
-    } else if (targetFlywheelVelocity > 9) {
-      lcd.print("  ");
-    } else {
-      lcd.print("   ");
-    }
-    lcd.print(targetFlywheelVelocity);
-
-    // Write target flywheel velocity to LCD
-    if (actualFlywheelVelocity >= maxFlywheelVelocity) {
-      lcd.setCursor ( 5, 1 );
-      lcd.print("MAX"); 
-    } else {
-      lcd.setCursor ( 5, 1 );
-      lcd.print("   ");
-    }
-    lcd.setCursor ( 12, 1 );
-    if (actualFlywheelVelocity > 999) {
-      lcd.print("");
-    } else if (actualFlywheelVelocity > 99) {
-      lcd.print(" ");
-    } else if (actualFlywheelVelocity > 9) {
-      lcd.print("  ");
-    } else {
-      lcd.print("   ");
-    }
-    lcd.print(actualFlywheelVelocity);
-
-    // Write target rotational position to LCD
-    lcd.setCursor ( 10, 2 );
-    if (targetRotationalPosition > 99) {
-      lcd.print("");
-    } else if (targetRotationalPosition > 9) {
-      lcd.print(" ");
-    } else {
-      lcd.print("  ");
-    }
-    lcd.print(targetRotationalPosition);
-
-    // Write actual rotational position to LCD
-    lcd.setCursor ( 10, 3 );
-    if (actualRotationalPosition > 99) {
-      lcd.print("");
-    } else if (actualRotationalPosition > 9) {
-      lcd.print(" ");
-    } else {
-      lcd.print("  ");
-    }
-    lcd.print(actualRotationalPosition);
-
-    
+  } else {
+    Serial.println("I2C Bus Not Connected");
+    lcd.setCursor ( 5, 0 );
+    lcd.print("No"); 
+    lcd.setCursor ( 5, 1 );
+    lcd.print("I2C"); 
+    delay(400);
+    lcd.setCursor ( 5, 0 );
+    lcd.print("   "); 
+    lcd.setCursor ( 5, 1 );
+    lcd.print("   "); 
+    delay(400);
   }
 
-//  lcd.setCursor ( 11, 3 );
-//  lcd.print(integer);
-//
-//  integer++;
-//
-//  if (integer > 999) {
-//    integer = 0;
-//  }
-  
-  delay(10);
+  currentTimeMS = millis();
+  if (currentTimeMS - lastTimeMS > 2000) {
+    i2cConnected = false;
+  } else {
+    i2cConnected = true;
+  }  
 }
 
 void receiveEvent(int numberOfBytes)
@@ -193,4 +217,14 @@ void receiveEvent(int numberOfBytes)
     ledState = LOW;
   }
   digitalWrite(ledPin, ledState);
+
+  lastTimeMS = millis();
+  i2cConnected = true;
+}
+
+void timerISR() {
+  i2cDisconnectedCounter++;
+  if (i2cDisconnectedCounter >= 8) {
+    i2cConnected = false;
+  }
 }
