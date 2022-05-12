@@ -20,13 +20,26 @@ float actualRotationalPosition = 0.0;
 float targetRotationalPosition = 0.0;
 
 const int indexerMotorControllerPin = 14;
+const int indexerEncoderA = 2;
+const int indexerEncoderB = 3;
+const int indexerEncoderCPR = 12;
 Servo indexerMotorController;
 
 const int rotationMotorControllerPin = 15;
+const int rotationEncoderA = 4;
+const int rotationEncoderB = 5;
+const int rotationEncoderCPR = 172;
+int rotationDirection = 1;  // 1 is CCW, 0 is CW
 Servo rotationMotorController;
 
 const int flywheelMotorControllerPin = 33;
+const int flywheelEncoderA = 0;
+const int flywheelEncoderB = 1;
+const int flywheelEncoderCPR = 4096;
 Servo flywheelMotorController;
+
+const int hallSwitchPin = 9;
+int hallSwitch = false;
 
 void setup()
 {
@@ -35,6 +48,17 @@ void setup()
   Wire1.onRequest(requestEvent); // register request event
   Serial.begin(115200);           // start serial for output
   pinMode(ledPin, OUTPUT);
+  
+  attachInterrupt(digitalPinToInterrupt(indexerEncoderA), indexerEncoderAISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(indexerEncoderB), indexerEncoderBISR, CHANGE);
+  
+  attachInterrupt(digitalPinToInterrupt(rotationEncoderA), rotationEncoderAISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(rotationEncoderB), rotationEncoderBISR, CHANGE);
+
+  attachInterrupt(digitalPinToInterrupt(flywheelEncoderA), flywheelEncoderAISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(flywheelEncoderB), flywheelEncoderBISR, CHANGE);
+  
+  attachInterrupt(digitalPinToInterrupt(hallSwitchPin), hallSwitchISR, RISING);
 
   indexerMotorController.attach(indexerMotorControllerPin, 1500, 2000);
   rotationMotorController.attach(rotationMotorControllerPin, 1000, 2000); //TODO: this could be used to change the direction in hall effect interrupt???
@@ -151,4 +175,33 @@ void requestEvent()
 //  Serial.println(str);
 
   Wire1.write(dataToSend, 8); // 8-Bytes (4 for flywheel v, 3 for rotation, 1 for rotation deciaml)
+}
+
+void hallSwitchISR() {
+  rotationMotorController.write(90);
+  hallSwitch = true;
+}
+
+void indexerEncoderAISR() {
+  
+}
+
+void indexerEncoderBISR() {
+  
+}
+
+void rotationEncoderAISR() {
+  
+}
+
+void rotationEncoderBISR() {
+  
+}
+
+void flywheelEncoderAISR() {
+  
+}
+
+void flywheelEncoderBISR() {
+  
 }
