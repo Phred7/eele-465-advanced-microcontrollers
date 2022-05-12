@@ -49,6 +49,7 @@ void loop()
     indexerMotorController.write(0);
   }
 
+  
   rotationMotorController.write(90);
 
   if (targetFlywheelVelocity > 0) {
