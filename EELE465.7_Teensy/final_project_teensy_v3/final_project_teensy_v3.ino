@@ -31,6 +31,8 @@ const int indexerMotorControllerPin = 14;
 const int indexerEncoderA = 2;
 const int indexerEncoderB = 3;
 const int indexerEncoderCPR = 12;
+long indexerEncoderCounts = 0;
+long actualIndexerVelocity = 0;
 int indexerState = false;
 Servo indexerMotorController;
 
@@ -40,8 +42,16 @@ const int rotationEncoderA = 4;
 const int rotationEncoderB = 5;
 const int rotationEncoderCPR = 172;
 float actualRotationalPosition = 0.0;
+float lastActualRotationalPosition = 0.0;
 float targetRotationalPosition = 0.0;
 int rotationDirection = 1;  // 1 is CCW, 0 is CW
+int rotationEncoderChannelAState = LOW;
+int rotationEncoderChannelBState = LOW;
+long rotationEncoderCounts = 0;
+long rotationLocalEncoderPosition = 0;
+float rotationVelocity = 0;
+float actualRotationalPositionError = 0;
+float actualRotationalPositionLastError = 0;
 Servo rotationMotorController;
 
 // flywheel
@@ -105,14 +115,22 @@ void loop()
 {
 
   if (i2cConnected == true) {
+
+    // indexer
     if (indexerState == true) {
       indexerMotorController.write(60);
     } else {
       indexerMotorController.write(0);
     }
-    
-    rotationMotorController.write(90);
-  
+
+    // rotation
+    if (hallSwitch == true) {
+      rotationMotorController.write(90);
+    } else {
+      rotationMotorController.write(90);    // good test percentage is ~14% - use map
+    }
+
+    // flywheel
     if (targetFlywheelVelocity > 0) {
       float mappedServoValue = map(targetFlywheelVelocity, 0, maxFlywheelVelocity, 0, 180);
       flywheelMotorController.write(mappedServoValue); // min of ~15
@@ -210,24 +228,53 @@ void requestEvent()
 }
 
 void hallSwitchISR() {
-//  rotationMotorController.write(90);
-//  hallSwitch = true;
+  hallSwitch = true;
 }
 
 void indexerEncoderAISR() {
-  
+  indexerEncoderCounts++;
 }
 
 void indexerEncoderBISR() {
-  
+  indexerEncoderCounts++;
 }
 
 void rotationEncoderAISR() {
-  
-}
+  rotationEncoderChannelAState = digitalRead(rotationEncoderA);
+  if (rotationEncoderChannelAState == HIGH && rotationEncoderChannelBState == LOW) {
+    rotationDirection = 1;
+  } else if (rotationEncoderChannelAState == HIGH && rotationEncoderChannelBState == HIGH) {
+    rotationDirection = 0;
+  } else if (rotationEncoderChannelAState == LOW && rotationEncoderChannelBState == LOW) {
+    rotationDirection = 0;
+  } else if (rotationEncoderChannelAState == LOW && rotationEncoderChannelBState == HIGH) {
+    rotationDirection = 1;
+  }
+  rotationEncoderCounts++;
+  if (rotationDirection == 1) {
+    rotationLocalEncoderPosition--;
+  } else if (rotationDirection == 0) {
+    rotationLocalEncoderPosition++;
+  }
+} 
 
 void rotationEncoderBISR() {
-  
+  rotationEncoderChannelBState = digitalRead(rotationEncoderB);
+  if (rotationEncoderChannelBState == HIGH && rotationEncoderChannelAState == LOW) {
+    rotationDirection = 0;
+  } else if (rotationEncoderChannelBState == HIGH && rotationEncoderChannelAState == HIGH) {
+    rotationDirection = 1;
+  } else if (rotationEncoderChannelBState == LOW && rotationEncoderChannelAState == LOW) {
+    rotationDirection = 1;
+  } else if (rotationEncoderChannelBState == LOW && rotationEncoderChannelAState == HIGH) {
+    rotationDirection = 0;
+  }
+  rotationEncoderCounts++;
+  if (rotationDirection == 1) {
+    rotationLocalEncoderPosition--;
+  } else if (rotationDirection == 0) {
+    rotationLocalEncoderPosition++;
+  }
 }
 
 void flywheelEncoderAISR() {
@@ -241,15 +288,34 @@ void flywheelEncoderBISR() {
 void timerISR() {
 
   if (i2cConnected == true) {
+
+    // indexer
+    if (indexerEncoderCounts > 0) {
+      Serial.println(indexerEncoderCounts);
+      actualIndexerVelocity = ((indexerEncoderCounts / deltaTime) * 60) / indexerEncoderCPR;
+      indexerEncoderCounts = 0;
+    } else {
+      actualIndexerVelocity = 0;
+    }
+
+    // flywheel
     if (flywheelEncoderCounts > 0) {
       actualFlywheelVelocity = ((flywheelEncoderCounts / deltaTime) * 60) / flywheelEncoderCPR;
       flywheelEncoderCounts = 0;
     } else {
       actualFlywheelVelocity = 0;
     }
-    Serial.print("Flywheel Velocity:\t");
+    
+    Serial.print("Indexer Velocity:");
+    Serial.print(actualIndexerVelocity);
+    Serial.print(" RPM\t");
+    Serial.print("Rotational Position:");
+    Serial.print(actualRotationalPosition);
+    Serial.print(" deg\t");
+    Serial.print("Flywheel Velocity:");
     Serial.print(actualFlywheelVelocity);
     Serial.println(" RPM");
+
   }
   
   i2cDisconnectedCounter++;
