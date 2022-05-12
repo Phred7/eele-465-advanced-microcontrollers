@@ -52,6 +52,8 @@ long rotationLocalEncoderPosition = 0;
 float rotationVelocity = 0;
 float actualRotationalPositionError = 0;
 float actualRotationalPositionLastError = 0;
+int rotationHomed = true;
+int rotationInitialHome = false;
 Servo rotationMotorController;
 
 // flywheel
@@ -72,6 +74,8 @@ int hallSwitch = false;
 // timer
 int timerDelayMS = 250;
 float deltaTime = (timerDelayMS / 1000.0);
+
+int servoAngle = 0;
 
 void setup()
 {
@@ -99,20 +103,43 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(flywheelEncoderB), flywheelEncoderBISR, CHANGE);
 
   // hall switch interrupts
-  attachInterrupt(digitalPinToInterrupt(hallSwitchPin), hallSwitchISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(hallSwitchPin), hallSwitchISR, FALLING);
 
   // enable timer, timer interrupt and start the timer
   FlexiTimer2::set(int(timerDelayMS), timerISR);
-  FlexiTimer2::start();
   
   // Attach servos
   indexerMotorController.attach(indexerMotorControllerPin, 1500, 2000);
   rotationMotorController.attach(rotationMotorControllerPin, 1000, 2000); //TODO: this could be used to change the direction in hall effect interrupt???
   flywheelMotorController.attach(flywheelMotorControllerPin, 1500, 1000);    
+
+  servoAngle = mapIndexerPercentToAngle(-12);
 }
 
 void loop()
 {
+  while(rotationInitialHome == false) {
+    hallSwitch = false;
+    Serial.println("Homing rotation");
+    int servoA = mapIndexerPercentToAngle(14);
+    while(hallSwitch == false) {
+      rotationMotorController.write(servoA);
+    }
+    rotationMotorController.write(90);
+    actualRotationalPosition = 0.0;
+    lastActualRotationalPosition = 0.0;
+    rotationDirection = 1;
+    rotationEncoderCounts = 0;
+    rotationLocalEncoderPosition = 0;
+    rotationVelocity = 0;
+    rotationMotorController.write(mapIndexerPercentToAngle(-12));
+    delay(100);
+    rotationMotorController.write(90);
+    rotationInitialHome = true;
+    Serial.println("Homing rotation complete");
+    FlexiTimer2::start();
+    hallSwitch = false; 
+  }
 
   if (i2cConnected == true) {
 
@@ -125,9 +152,35 @@ void loop()
 
     // rotation
     if (hallSwitch == true) {
-      rotationMotorController.write(90);
+      if (rotationDirection == 0) { // ccw (-)
+        actualRotationalPosition = 360.0;
+        lastActualRotationalPosition = 360.0;
+        rotationEncoderCounts = rotationEncoderCPR;
+        rotationLocalEncoderPosition = rotationEncoderCPR;
+        servoAngle = mapIndexerPercentToAngle(0);
+        rotationVelocity = 0;
+        hallSwitch = false;
+      } else if (rotationDirection == 1) { // cw (+)
+        actualRotationalPosition = 0.0;
+        lastActualRotationalPosition = 0.0;
+        rotationEncoderCounts = 0;
+        rotationLocalEncoderPosition = 0;
+        rotationVelocity = 0;
+        servoAngle = mapIndexerPercentToAngle(12);
+        hallSwitch = false;
+      }
     } else {
-      rotationMotorController.write(90);    // good test percentage is ~14% - use map
+      
+      actualRotationalPosition = ((float)360 / ((float)rotationEncoderCPR)) * (float)(rotationLocalEncoderPosition);
+      actualRotationalPositionLastError = actualRotationalPositionError;
+      actualRotationalPositionError = targetRotationalPosition - actualRotationalPosition;
+      if (actualRotationalPosition > 360) {
+        rotationMotorController.write(90);    // good test percentage is ~14% - use map
+      } else if (actualRotationalPosition < 0) {
+        rotationMotorController.write(90);    // good test percentage is ~14% - use map
+      } else {
+        rotationMotorController.write(servoAngle);    // good test percentage is ~14% - use map
+      }
     }
 
     // flywheel
@@ -229,6 +282,7 @@ void requestEvent()
 
 void hallSwitchISR() {
   hallSwitch = true;
+  rotationMotorController.write(90);
 }
 
 void indexerEncoderAISR() {
@@ -242,13 +296,13 @@ void indexerEncoderBISR() {
 void rotationEncoderAISR() {
   rotationEncoderChannelAState = digitalRead(rotationEncoderA);
   if (rotationEncoderChannelAState == HIGH && rotationEncoderChannelBState == LOW) {
-    rotationDirection = 1;
+    rotationDirection = 0;
   } else if (rotationEncoderChannelAState == HIGH && rotationEncoderChannelBState == HIGH) {
-    rotationDirection = 0;
-  } else if (rotationEncoderChannelAState == LOW && rotationEncoderChannelBState == LOW) {
-    rotationDirection = 0;
-  } else if (rotationEncoderChannelAState == LOW && rotationEncoderChannelBState == HIGH) {
     rotationDirection = 1;
+  } else if (rotationEncoderChannelAState == LOW && rotationEncoderChannelBState == LOW) {
+    rotationDirection = 1;
+  } else if (rotationEncoderChannelAState == LOW && rotationEncoderChannelBState == HIGH) {
+    rotationDirection = 0;
   }
   rotationEncoderCounts++;
   if (rotationDirection == 1) {
@@ -261,13 +315,13 @@ void rotationEncoderAISR() {
 void rotationEncoderBISR() {
   rotationEncoderChannelBState = digitalRead(rotationEncoderB);
   if (rotationEncoderChannelBState == HIGH && rotationEncoderChannelAState == LOW) {
-    rotationDirection = 0;
+    rotationDirection = 1;
   } else if (rotationEncoderChannelBState == HIGH && rotationEncoderChannelAState == HIGH) {
-    rotationDirection = 1;
-  } else if (rotationEncoderChannelBState == LOW && rotationEncoderChannelAState == LOW) {
-    rotationDirection = 1;
-  } else if (rotationEncoderChannelBState == LOW && rotationEncoderChannelAState == HIGH) {
     rotationDirection = 0;
+  } else if (rotationEncoderChannelBState == LOW && rotationEncoderChannelAState == LOW) {
+    rotationDirection = 0;
+  } else if (rotationEncoderChannelBState == LOW && rotationEncoderChannelAState == HIGH) {
+    rotationDirection = 1;
   }
   rotationEncoderCounts++;
   if (rotationDirection == 1) {
@@ -298,6 +352,10 @@ void timerISR() {
       actualIndexerVelocity = 0;
     }
 
+    // rotation
+    rotationVelocity = (actualRotationalPosition - lastActualRotationalPosition) /  deltaTime;
+    lastActualRotationalPosition = actualRotationalPosition;
+
     // flywheel
     if (flywheelEncoderCounts > 0) {
       actualFlywheelVelocity = ((flywheelEncoderCounts / deltaTime) * 60) / flywheelEncoderCPR;
@@ -312,6 +370,12 @@ void timerISR() {
     Serial.print("Rotational Position:");
     Serial.print(actualRotationalPosition);
     Serial.print(" deg\t");
+//    Serial.print("Rotational Error:");
+//    Serial.print(actualRotationalPositionError);
+//    Serial.print(" deg\t");
+//    Serial.print("Rotational Velocity:");
+//    Serial.print(rotationVelocity);
+//    Serial.print(" deg/sec\t");
     Serial.print("Flywheel Velocity:");
     Serial.print(actualFlywheelVelocity);
     Serial.println(" RPM");
@@ -322,4 +386,14 @@ void timerISR() {
   if (i2cDisconnectedCounter >= 8) {
     i2cConnected = false;
   }
+}
+
+int mapIndexerPercentToAngle(float percent) {
+  int value = map(percent, -100, 100, 0, 180); // 0, 180
+  if(value > 110) {
+    value = 110;
+  } else if (value < 70) {
+    value = 70;
+  }
+  return value;
 }
