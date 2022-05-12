@@ -65,6 +65,7 @@ long actualFlywheelVelocity = 0;
 long targetFlywheelVelocity = 0;
 long flywheelEncoderCounts = 0;
 long maxFlywheelVelocity = 5500;
+int pidOffset = 0;
 Servo flywheelMotorController;
 
 // hall switch
@@ -76,6 +77,18 @@ int timerDelayMS = 250;
 float deltaTime = (timerDelayMS / 1000.0);
 
 int servoAngle = 0;
+
+float curveVals[] = {0.0016,0.00639,0.01433,0.02538,0.03947,0.0565,0.0764,
+    0.0989,0.1241,0.1512,0.1814,0.2132,0.2469,0.2822,0.3188,0.3566,0.3954,
+    0.4348,0.4746,0.5146,0.5545,0.594,0.633,0.6711,0.7081,0.7437,0.7778,
+    0.8102,0.8405,0.8687,0.8945,0.9178,0.9384,0.9562,0.9711,0.9829,0.9918,
+    0.9974};
+int steps = 38;
+int currentStep = 0;
+int delayLength = 150;
+long rampCurrentTarget = 0;
+int rampComplete = true;
+int rampOffset = 0;
 
 void setup()
 {
@@ -121,10 +134,10 @@ void loop()
   while(rotationInitialHome == false) {
     hallSwitch = false;
     Serial.println("Homing rotation");
-    int servoA = mapIndexerPercentToAngle(14);
-    while(hallSwitch == false) {
-      rotationMotorController.write(servoA);
-    }
+//    int servoA = mapIndexerPercentToAngle(14);
+//    while(hallSwitch == false) {
+//      rotationMotorController.write(servoA);
+//    }
     rotationMotorController.write(90);
     actualRotationalPosition = 0.0;
     lastActualRotationalPosition = 0.0;
@@ -132,8 +145,8 @@ void loop()
     rotationEncoderCounts = 0;
     rotationLocalEncoderPosition = 0;
     rotationVelocity = 0;
-    rotationMotorController.write(mapIndexerPercentToAngle(-12));
-    delay(100);
+//    rotationMotorController.write(mapIndexerPercentToAngle(-12));
+//    delay(100);
     rotationMotorController.write(90);
     rotationInitialHome = true;
     Serial.println("Homing rotation complete");
@@ -151,42 +164,79 @@ void loop()
     }
 
     // rotation
-    if (hallSwitch == true) {
-      if (rotationDirection == 0) { // ccw (-)
-        actualRotationalPosition = 360.0;
-        lastActualRotationalPosition = 360.0;
-        rotationEncoderCounts = rotationEncoderCPR;
-        rotationLocalEncoderPosition = rotationEncoderCPR;
-        servoAngle = mapIndexerPercentToAngle(0);
-        rotationVelocity = 0;
-        hallSwitch = false;
-      } else if (rotationDirection == 1) { // cw (+)
-        actualRotationalPosition = 0.0;
-        lastActualRotationalPosition = 0.0;
-        rotationEncoderCounts = 0;
-        rotationLocalEncoderPosition = 0;
-        rotationVelocity = 0;
-        servoAngle = mapIndexerPercentToAngle(12);
-        hallSwitch = false;
-      }
-    } else {
-      
+//    if (hallSwitch == true) {
+//      if (rotationDirection == 0) { // ccw (-)
+//        actualRotationalPosition = 360.0;
+//        lastActualRotationalPosition = 360.0;
+//        rotationEncoderCounts = rotationEncoderCPR;
+//        rotationLocalEncoderPosition = rotationEncoderCPR;
+//        servoAngle = mapIndexerPercentToAngle(0);
+//        rotationVelocity = 0;
+//        hallSwitch = false;
+//      } else if (rotationDirection == 1) { // cw (+)
+//        actualRotationalPosition = 0.0;
+//        lastActualRotationalPosition = 0.0;
+//        rotationEncoderCounts = 0;
+//        rotationLocalEncoderPosition = 0;
+//        rotationVelocity = 0;
+//        servoAngle = mapIndexerPercentToAngle(12);
+//        hallSwitch = false;
+//      }
+//    } else {
+//      
       actualRotationalPosition = ((float)360 / ((float)rotationEncoderCPR)) * (float)(rotationLocalEncoderPosition);
       actualRotationalPositionLastError = actualRotationalPositionError;
       actualRotationalPositionError = targetRotationalPosition - actualRotationalPosition;
-      if (actualRotationalPosition > 360) {
-        rotationMotorController.write(90);    // good test percentage is ~14% - use map
-      } else if (actualRotationalPosition < 0) {
-        rotationMotorController.write(90);    // good test percentage is ~14% - use map
-      } else {
-        rotationMotorController.write(servoAngle);    // good test percentage is ~14% - use map
-      }
-    }
+//      if (actualRotationalPosition > 360) {
+//        rotationMotorController.write(90);    // good test percentage is ~14% - use map
+//      } else if (actualRotationalPosition < 0) {
+//        rotationMotorController.write(90);    // good test percentage is ~14% - use map
+//      } else {
+//        rotationMotorController.write(servoAngle);    // good test percentage is ~14% - use map
+//      }
+//    }
+    rotationMotorController.write(90);
 
     // flywheel
     if (targetFlywheelVelocity > 0) {
-      float mappedServoValue = map(targetFlywheelVelocity, 0, maxFlywheelVelocity, 0, 180);
-      flywheelMotorController.write(mappedServoValue); // min of ~15
+      if (targetFlywheelVelocity != rampCurrentTarget) {
+        if (targetFlywheelVelocity > actualFlywheelVelocity) {
+          Serial.println("Ramping Flywheel");
+          rampCurrentTarget = targetFlywheelVelocity;
+          rampComplete = false;
+          rampOffset = actualFlywheelVelocity;
+          currentStep = 0;
+        }
+
+      }
+
+      if (rampComplete == false) {
+        float mappedServoValue = map(((rampCurrentTarget * curveVals[currentStep]) + rampOffset), 0, maxFlywheelVelocity, 0, 180);
+        flywheelMotorController.write(mappedServoValue); 
+        currentStep++;
+        if (currentStep > steps) {
+          rampComplete = true;
+          rampOffset = 0;
+          
+          Serial.println("Ramping Flywheel Complete");
+        }
+        delay(delayLength);
+      } else {
+        // Serial.println(pidOffset);
+        float mappedServoValue = map(targetFlywheelVelocity + pidOffset, 0, maxFlywheelVelocity, 0, 180);
+        flywheelMotorController.write(mappedServoValue); // min of ~15
+        if ((targetFlywheelVelocity + pidOffset < maxFlywheelVelocity) && (targetFlywheelVelocity + pidOffset > 0)) {
+          if (actualFlywheelVelocity < (targetFlywheelVelocity - 30)) {
+            pidOffset = pidOffset + ((targetFlywheelVelocity - actualFlywheelVelocity) * .1);
+          } else if (actualFlywheelVelocity > (targetFlywheelVelocity + 30)) {
+            pidOffset = pidOffset - ((actualFlywheelVelocity - targetFlywheelVelocity) * .1);
+;
+          }
+          delay(delayLength);
+        }
+        
+      }
+
     } else {
       flywheelMotorController.write(0);
     } 
@@ -345,7 +395,7 @@ void timerISR() {
 
     // indexer
     if (indexerEncoderCounts > 0) {
-      Serial.println(indexerEncoderCounts);
+//      Serial.println(indexerEncoderCounts);
       actualIndexerVelocity = ((indexerEncoderCounts / deltaTime) * 60) / indexerEncoderCPR;
       indexerEncoderCounts = 0;
     } else {
@@ -364,21 +414,21 @@ void timerISR() {
       actualFlywheelVelocity = 0;
     }
     
-    Serial.print("Indexer Velocity:");
-    Serial.print(actualIndexerVelocity);
-    Serial.print(" RPM\t");
-    Serial.print("Rotational Position:");
-    Serial.print(actualRotationalPosition);
-    Serial.print(" deg\t");
-//    Serial.print("Rotational Error:");
-//    Serial.print(actualRotationalPositionError);
+//    Serial.print("Indexer Velocity:");
+//    Serial.print(actualIndexerVelocity);
+//    Serial.print(" RPM\t");
+//    Serial.print("Rotational Position:");
+//    Serial.print(actualRotationalPosition);
 //    Serial.print(" deg\t");
-//    Serial.print("Rotational Velocity:");
-//    Serial.print(rotationVelocity);
-//    Serial.print(" deg/sec\t");
-    Serial.print("Flywheel Velocity:");
-    Serial.print(actualFlywheelVelocity);
-    Serial.println(" RPM");
+////    Serial.print("Rotational Error:");
+////    Serial.print(actualRotationalPositionError);
+////    Serial.print(" deg\t");
+////    Serial.print("Rotational Velocity:");
+////    Serial.print(rotationVelocity);
+////    Serial.print(" deg/sec\t");
+//    Serial.print("Flywheel Velocity:");
+//    Serial.print(actualFlywheelVelocity);
+//    Serial.println(" RPM");
 
   }
   

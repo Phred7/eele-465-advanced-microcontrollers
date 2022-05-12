@@ -79,7 +79,7 @@ void loop() {
 
   if (i2cConnected == true) {
     if (updateLCD == true) {
-      updateLCD = false;
+      //updateLCD = false;
   
       // Write target flywheel velocity to LCD
       if (targetFlywheelVelocity >= maxFlywheelVelocity) {
@@ -146,7 +146,7 @@ void loop() {
   
       
     }
-    delay(10);
+    delay(200);
 
   } else {
     Serial.println("I2C Bus Not Connected");
