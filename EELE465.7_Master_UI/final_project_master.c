@@ -600,7 +600,7 @@ int main(void)
             sendI2C(ledAddress);
             P6OUT ^= BIT6;
 
-            if (timerInterruptCounter >= 0x05) { // triggers on ~0.5sec
+            if (timerInterruptCounter >= 0x01) { // triggers on ~0.3sec
                timerInterruptCounter = 0x00;
                constructIndexer();      // updates teensy
                sendI2C(teensyAddress);
